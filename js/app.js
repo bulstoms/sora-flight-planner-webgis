@@ -55,35 +55,33 @@ require([
     }
   }
 
+  // Run auth status update once the view is ready
   view.when(updateAuthStatus);
+
   // -------------------------------
   // WIDGETS
   // -------------------------------
-
   view.when(function () {
 
-    // Layer List
-    const layerList = new LayerList({
+    new LayerList({
       view: view,
       container: "widgetLayerList"
     });
 
-    // Basemap Gallery
-    const basemapGallery = new BasemapGallery({
+    new BasemapGallery({
       view: view,
       container: "widgetBasemap"
     });
 
-    // Bookmarks
-    const bookmarks = new Bookmarks({
+    new Bookmarks({
       view: view,
       container: "widgetBookmarks"
     });
 
-    // Measurement
-    const measurement = new Measurement({
+    new Measurement({
       view: view,
       container: "widgetMeasure"
     });
 
   });
+});
