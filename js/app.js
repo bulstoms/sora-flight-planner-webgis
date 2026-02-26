@@ -7,7 +7,8 @@ require([
   "esri/widgets/LayerList",
   "esri/widgets/BasemapGallery",
   "esri/widgets/Bookmarks",
-  "esri/widgets/Measurement"
+  "esri/widgets/DistanceMeasurement2D",
+  "esri/widgets/AreaMeasurement2D"
 ], function (
   esriConfig,
   OAuthInfo,
@@ -17,7 +18,8 @@ require([
   LayerList,
   BasemapGallery,
   Bookmarks,
-  Measurement
+  DistanceMeasurement2D,
+  AreaMeasurement2D
 ) {
   const cfg = window.SORA_CONFIG;
 
@@ -78,10 +80,36 @@ require([
       container: "widgetBookmarks"
     });
 
-    new Measurement({
-      view: view,
-      container: "widgetMeasure"
-    });
+    const measureContainer = document.getElementById("widgetMeasure");
+
+    const distanceBtn = document.createElement("button");
+    distanceBtn.textContent = "Measure distance";
+    distanceBtn.className = "measure-btn";
+
+    const areaBtn = document.createElement("button");
+    areaBtn.textContent = "Measure area";
+    areaBtn.className = "measure-btn";
+
+    measureContainer.appendChild(distanceBtn);
+    measureContainer.appendChild(areaBtn);
+
+    let activeWidget = null;
+
+    distanceBtn.onclick = function () {
+      if (activeWidget) activeWidget.destroy();
+      activeWidget = new DistanceMeasurement2D({
+        view: view,
+        container: measureContainer
+      });
+    };
+
+    areaBtn.onclick = function () {
+      if (activeWidget) activeWidget.destroy();
+      activeWidget = new AreaMeasurement2D({
+        view: view,
+        container: measureContainer
+      });
+    };
 
   });
 });
