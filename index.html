@@ -29,10 +29,26 @@
   <!-- Right-side tools panel -->
   <div id="toolsPanel" class="tools-panel">
     <div class="tools-title">Tools</div>
-    <div id="widgetLayerList" class="tools-section"></div>
-    <div id="widgetBasemap" class="tools-section"></div>
-    <div id="widgetBookmarks" class="tools-section"></div>
-    <div id="widgetMeasure" class="tools-section"></div>
+
+    <details open class="tools-group">
+      <summary>Layers</summary>
+      <div id="widgetLayerList" class="tools-section"></div>
+    </details>
+
+    <details class="tools-group">
+      <summary>Basemaps</summary>
+      <div id="widgetBasemap" class="tools-section"></div>
+    </details>
+
+    <details class="tools-group">
+      <summary>Bookmarks</summary>
+      <div id="widgetBookmarks" class="tools-section"></div>
+    </details>
+
+    <details class="tools-group">
+      <summary>Measure</summary>
+      <div id="widgetMeasure" class="tools-section"></div>
+    </details>
 </div>
 </body>
 </html>
