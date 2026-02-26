@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OAuth Callback</title>
+</head>
+<body>
+  <p>Completing sign-in…</p>
+
+  <script src="https://js.arcgis.com/4.29/"></script>
+  <script>
+    require(["esri/identity/IdentityManager"], function (esriId) {
+      esriId.checkSignInStatus("https://spectrofly.maps.arcgis.com/sharing")
+        .catch(function(){})
+        .finally(function () {
+          window.location.replace("./");
+        });
+    });
+  </script>
+</body>
+</html>
