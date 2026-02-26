@@ -88,3 +88,32 @@ html, body, #viewDiv {
 .tools-section:last-child {
   border-bottom: none;
 }
+
+.tools-group {
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.tools-group summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.tools-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.tools-group summary::after {
+  content: "▸";
+  float: right;
+  opacity: 0.6;
+}
+
+.tools-group[open] summary::after {
+  content: "▾";
+}
+
+.tools-group .tools-section {
+  padding: 10px 12px;
+}
