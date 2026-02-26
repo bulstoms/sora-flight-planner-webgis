@@ -58,3 +58,33 @@ html, body, #viewDiv {
   right: 0;
   bottom: 0;
 }
+
+.tools-panel {
+  position: absolute;
+  top: 70px;            /* below header */
+  right: 12px;
+  width: 320px;
+  max-height: calc(100% - 90px);
+  overflow: auto;
+  background: white;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  z-index: 20;
+  font-family: Arial, sans-serif;
+}
+
+.tools-title {
+  padding: 10px 12px;
+  font-weight: 700;
+  border-bottom: 1px solid #eee;
+}
+
+.tools-section {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.tools-section:last-child {
+  border-bottom: none;
+}
