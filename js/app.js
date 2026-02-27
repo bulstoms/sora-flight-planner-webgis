@@ -100,36 +100,37 @@ require([
     measureButtons.appendChild(areaBtn);
     measureButtons.appendChild(clearBtn);
 
+    // Create widgets ONCE (important)
+    const distanceWidget = new DistanceMeasurement2D({ view });
+    const areaWidget = new AreaMeasurement2D({ view });
+
     let activeWidget = null;
 
-    function activate(widgetType) {
-      // Clear previous widget UI safely
-      if (activeWidget) {
-        activeWidget.destroy();
-        activeWidget = null;
+    function showWidget(widget) {
+      // Detach previous widget safely
+      if (activeWidget && activeWidget !== widget) {
+        try { activeWidget.clear(); } catch (e) {}
+        activeWidget.container = null;
       }
-      measureWidgetDiv.innerHTML = "";
 
-      activeWidget = new widgetType({
-        view: view,
-        container: measureWidgetDiv
-      });
+      // Attach selected widget into our div
+      widget.container = measureWidgetDiv;
+      activeWidget = widget;
     }
 
-    distanceBtn.onclick = function () {
-      activate(DistanceMeasurement2D);
-    };
+    distanceBtn.onclick = () => showWidget(distanceWidget);
+    areaBtn.onclick = () => showWidget(areaWidget);
 
-    areaBtn.onclick = function () {
-      activate(AreaMeasurement2D);
-    };
+    clearBtn.onclick = () => {
+      if (!activeWidget) return;
 
-    clearBtn.onclick = function () {
-      if (activeWidget) {
-        activeWidget.destroy();
-        activeWidget = null;
-      }
-      measureWidgetDiv.innerHTML = "";
+      // Clear measurement graphics/state
+      try { activeWidget.clear(); } catch (e) {}
+
+      // Keep widget attached so it doesn't leave weird overlays behind
+      // (Optional) you can also detach it:
+      // activeWidget.container = null;
+      // activeWidget = null; 
     };
 
   });
