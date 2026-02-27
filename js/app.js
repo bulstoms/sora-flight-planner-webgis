@@ -284,29 +284,59 @@ require([
         Parachute min height: ${d.parachuteMinHeight} m<br>
         Static GRB: ${d.grb} m
       `;
-    };   
-
-    // -------------------------------
-    // QUICK TEST BUFFER (100 m)
-    // -------------------------------
-    document.getElementById("btnBuffer100").onclick = () => {
+    };
+    document.getElementById("btnCalculateCV").onclick = () => {
       if (!missionGeom) {
-        setMissionStatus("No mission area. Import or draw first.");
+        setMissionStatus("No mission area.");
         return;
       }
 
-      // Clear and redraw mission
+      const droneKey = droneSelect.value;
+      if (!droneKey) {
+        setMissionStatus("Select a drone.");
+        return;
+      }
+
+      const drone = drones[droneKey];
+
+      const speed = Number(document.getElementById("inputSpeed").value) || 0;
+      const altitude = Number(document.getElementById("inputAltitude").value) || 0;
+      const useParachute = document.getElementById("chkParachute").checked;
+
+      // --- Simplified CV logic (placeholder for now)
+      let cvDistance = speed * 3;   // 3-second reaction model
+
+      if (useParachute && altitude > drone.parachuteMinHeight) {
+        cvDistance = speed * 1.5;  // reduced horizontal drift (placeholder logic)
+      }
+
+      const grbDistance = drone.grb;
+
       missionLayer.removeAll();
       missionLayer.add(new Graphic({ geometry: missionGeom, symbol: missionSymbol }));
 
-      const buf = geometryEngine.geodesicBuffer(missionGeom, 100, "meters");
+      const cvBuffer = geometryEngine.geodesicBuffer(missionGeom, cvDistance, "meters");
+      const grbBuffer = geometryEngine.geodesicBuffer(cvBuffer, grbDistance, "meters");
 
       missionLayer.add(new Graphic({
-        geometry: buf,
-        symbol: bufferSymbol
+        geometry: cvBuffer,
+        symbol: {
+          type: "simple-fill",
+          color: [255, 165, 0, 0.15],
+          outline: { color: [255, 140, 0], width: 2 }
+        }
       }));
 
-      setMissionStatus("100 m buffer generated.");
+      missionLayer.add(new Graphic({
+        geometry: grbBuffer,
+        symbol: {
+          type: "simple-fill",
+          color: [255, 0, 0, 0.15],
+          outline: { color: [200, 0, 0], width: 2 }
+        }
+      }));
+
+      setMissionStatus(`CV: ${cvDistance.toFixed(1)} m | GRB: ${grbDistance} m`);
     };
     
     // -------------------------------
