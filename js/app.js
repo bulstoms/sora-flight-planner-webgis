@@ -183,19 +183,39 @@ require([
           geom = gj;
         }
 
-        if (!geom || geom.type !== "Polygon") {
-          setMissionStatus("GeoJSON must contain a Polygon (FeatureCollection with Polygon).");
+        if (!geom || !geom.type || !geom.coordinates) {
+          setMissionStatus("GeoJSON geometry missing.");
           return;
         }
 
-        // GeoJSON Polygon -> ArcGIS rings (assumes coordinates are lon/lat)
-        const rings = geom.coordinates.map(ring => ring.map(([x, y]) => [x, y]));
+        let polygon4326 = null;
 
-        const polygon4326 = {
-          type: "polygon",
-          rings: rings,
-          spatialReference: { wkid: 4326 }
-        };
+        if (geom.type === "Polygon") {
+          // GeoJSON Polygon: coordinates = [ [ [x,y], ... ] , ... ]
+          const rings = geom.coordinates.map(ring => ring.map(([x, y]) => [x, y]));
+          polygon4326 = {
+            type: "polygon",
+            rings: rings,
+            spatialReference: { wkid: 4326 }
+          };
+        } else if (geom.type === "MultiPolygon") {
+          // GeoJSON MultiPolygon: coordinates = [ Polygon1, Polygon2, ... ]
+          // We'll use the first polygon for now (most QGIS exports only have one anyway).
+          const firstPoly = geom.coordinates[0];
+          if (!firstPoly) {
+            setMissionStatus("MultiPolygon has no coordinates.");
+            return;
+          }
+          const rings = firstPoly.map(ring => ring.map(([x, y]) => [x, y]));
+          polygon4326 = {
+            type: "polygon",
+            rings: rings,
+            spatialReference: { wkid: 4326 }
+          };
+        } else {
+          setMissionStatus("GeoJSON must contain Polygon or MultiPolygon.");
+          return;
+        }   
 
         const polyForView = webMercatorUtils.canProject(polygon4326, view.spatialReference)
           ? webMercatorUtils.project(polygon4326, view.spatialReference)
