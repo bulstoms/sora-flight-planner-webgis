@@ -80,7 +80,9 @@ require([
       container: "widgetBookmarks"
     });
 
-    const measureContainer = document.getElementById("widgetMeasure");
+    // --- Measurement (Distance / Area) ---
+    const measureButtons = document.getElementById("measureButtons");
+    const measureWidgetDiv = document.getElementById("measureWidget");
 
     const distanceBtn = document.createElement("button");
     distanceBtn.textContent = "Measure distance";
@@ -90,25 +92,44 @@ require([
     areaBtn.textContent = "Measure area";
     areaBtn.className = "measure-btn";
 
-    measureContainer.appendChild(distanceBtn);
-    measureContainer.appendChild(areaBtn);
+    const clearBtn = document.createElement("button");
+    clearBtn.textContent = "Clear measurement";
+    clearBtn.className = "measure-btn";
+
+    measureButtons.appendChild(distanceBtn);
+    measureButtons.appendChild(areaBtn);
+    measureButtons.appendChild(clearBtn);
 
     let activeWidget = null;
 
-    distanceBtn.onclick = function () {
-      if (activeWidget) activeWidget.destroy();
-      activeWidget = new DistanceMeasurement2D({
+    function activate(widgetType) {
+      // Clear previous widget UI safely
+      if (activeWidget) {
+        activeWidget.destroy();
+        activeWidget = null;
+      }
+      measureWidgetDiv.innerHTML = "";
+
+      activeWidget = new widgetType({
         view: view,
-        container: measureContainer
+        container: measureWidgetDiv
       });
+    }
+
+    distanceBtn.onclick = function () {
+      activate(DistanceMeasurement2D);
     };
 
     areaBtn.onclick = function () {
-      if (activeWidget) activeWidget.destroy();
-      activeWidget = new AreaMeasurement2D({
-        view: view,
-        container: measureContainer
-      });
+      activate(AreaMeasurement2D);
+    };
+
+    clearBtn.onclick = function () {
+      if (activeWidget) {
+        activeWidget.destroy();
+        activeWidget = null;
+      }
+      measureWidgetDiv.innerHTML = "";
     };
 
   });
