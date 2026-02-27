@@ -148,6 +148,8 @@ require([
         missionGeom = evt.graphic.geometry;
         sketchMission.visible = false;
         setMissionStatus("Mission area set.");
+
+        view.goTo(missionGeom, { padding: 40 });
       }
     });
 
@@ -229,7 +231,7 @@ require([
 
         missionGeom = polyForView;
         setMissionStatus("Mission area imported.");
-        view.goTo(polyForView);
+        view.goTo(polyForView, { padding: 40 });
 
       } catch (e) {
         console.error(e);
