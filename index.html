@@ -82,6 +82,21 @@
           Use parachute contingency method
         </label>
 
+        <div style="margin-top:10px; font-weight:600;">Contingency parameters</div>
+
+        <label style="font-size:12px;">Reaction time (s)</label>
+        <input id="inputReaction" type="number" value="3" step="0.5" style="width:100%; margin-bottom:6px;" />
+
+        <label style="font-size:12px;">Wind speed (m/s)</label>
+        <input id="inputWind" type="number" value="5" step="0.5" style="width:100%; margin-bottom:6px;" />
+
+        <label style="font-size:12px;">Position uncertainty (m)</label>
+        <input id="inputPosUnc" type="number" value="5" step="1" style="width:100%; margin-bottom:6px;" />
+
+        <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">
+          (You can refine these later. For now this makes CV fully adjustable.)
+        </div>
+
         <button id="btnCalculateCV" class="measure-btn" style="margin-top:8px;">
           Calculate CV + GRB
         </button>
