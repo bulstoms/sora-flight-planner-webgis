@@ -247,6 +247,46 @@ require([
     });
 
     // -------------------------------
+    // DRONE DEFINITIONS
+    // -------------------------------
+    const drones = {
+      m350: {
+        name: "DJI M350",
+        wingspan: 1.4,
+        mtow: 12.9,
+        parachuteMinHeight: 39,
+        grb: 50   // static test value (we adjust later)
+      },
+      tundra2: {
+        name: "Tundra 2 Endurance",
+        wingspan: 1.84,
+        mtow: 12.9,
+        parachuteMinHeight: 47,
+        grb: 80   // static test value
+      }
+    };
+
+    const droneSelect = document.getElementById("droneSelect");
+    const droneInfo = document.getElementById("droneInfo");
+
+    droneSelect.onchange = () => {
+      const key = droneSelect.value;
+      if (!key || !drones[key]) {
+        droneInfo.innerHTML = "";
+        return;
+      }
+
+      const d = drones[key];
+
+      droneInfo.innerHTML = `
+        Wingspan: ${d.wingspan} m<br>
+        MTOW: ${d.mtow} kg<br>
+        Parachute min height: ${d.parachuteMinHeight} m<br>
+        Static GRB: ${d.grb} m
+      `;
+    };   
+
+    // -------------------------------
     // QUICK TEST BUFFER (100 m)
     // -------------------------------
     document.getElementById("btnBuffer100").onclick = () => {
