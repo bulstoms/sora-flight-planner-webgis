@@ -59,6 +59,33 @@
         <button id="btnDrawMission" class="measure-btn">Draw mission area</button>
         <button id="btnClearMission" class="measure-btn">Clear mission</button>
 
+        <div style="margin-top:12px; font-weight:600;">Drone</div>
+
+        <select id="droneSelect" style="width:100%; margin-bottom:8px;">
+          <option value="">-- Select drone --</option>
+          <option value="m350">DJI M350</option>
+          <option value="tundra2">Tundra 2 Endurance</option>
+        </select>
+
+        <div id="droneInfo" style="font-size:12px; margin-bottom:8px;"></div>
+
+        <div style="font-weight:600;">Operational inputs</div>
+
+        <label style="font-size:12px;">Acquisition speed (m/s)</label>
+        <input id="inputSpeed" type="number" value="10" style="width:100%; margin-bottom:6px;" />
+
+        <label style="font-size:12px;">Altitude AGL (m)</label>
+        <input id="inputAltitude" type="number" value="60" style="width:100%; margin-bottom:6px;" />
+
+        <label style="font-size:12px;">
+          <input type="checkbox" id="chkParachute" />
+          Use parachute contingency method
+        </label>
+
+        <button id="btnCalculateCV" class="measure-btn" style="margin-top:8px;">
+          Calculate CV + GRB
+        </button>
+
         <div style="margin-top:10px; font-weight:600;">Quick test buffer</div>
         <button id="btnBuffer100" class="measure-btn">Generate 100 m buffer</button>
 
