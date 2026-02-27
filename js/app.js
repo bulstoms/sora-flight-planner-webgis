@@ -336,8 +336,15 @@ require([
         }
       }));
 
-      setMissionStatus(`CV: ${cvDistance.toFixed(1)} m | GRB: ${grbDistance} m`);
+      const totalOuter = cvDistance + grbDistance;
+      setMissionStatus(
+        `CV: ${cvDistance.toFixed(1)} m | GRB increment: ${grbDistance} m | Total outer: ${totalOuter.toFixed(1)} m`
+      ); 
     };
+
+
+
+    
     
     // -------------------------------
     // MEASUREMENT (stable iterative)
