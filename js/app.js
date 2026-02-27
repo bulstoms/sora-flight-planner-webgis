@@ -231,8 +231,13 @@ require([
 
         missionGeom = polyForView;
         setMissionStatus("Mission area imported.");
-        view.goTo(polyForView, { padding: 40 });
 
+        // Zoom to imported mission
+        const target = missionLayer.graphics.getItemAt(0);
+        if (target) {
+          view.goTo(target.geometry.extent.expand(1.2), { padding: 60 });
+        }
+        
       } catch (e) {
         console.error(e);
         setMissionStatus("Import failed. Check file is valid GeoJSON.");
