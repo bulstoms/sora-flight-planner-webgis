@@ -255,6 +255,7 @@ require([
         wingspan: 1.4,
         mtow: 12.9,
         parachuteMinHeight: 39,
+        parachuteDescentRate: 6, // m/s (placeholder; adjust later)
         grb: 50   // static test value (we adjust later)
       },
       tundra2: {
@@ -262,6 +263,7 @@ require([
         wingspan: 1.84,
         mtow: 12.9,
         parachuteMinHeight: 47,
+        parachuteDescentRate: 6, // m/s (placeholder; adjust later)
         grb: 80   // static test value
       }
     };
