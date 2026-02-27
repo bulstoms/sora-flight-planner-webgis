@@ -7,6 +7,11 @@ require([
   "esri/widgets/LayerList",
   "esri/widgets/BasemapGallery",
   "esri/widgets/Bookmarks",
+  "esri/layers/GraphicsLayer",
+  "esri/widgets/Sketch",
+  "esri/geometry/geometryEngine",
+  "esri/Graphic",
+  "esri/geometry/support/webMercatorUtils",
   "esri/widgets/Measurement"
 ], function (
   esriConfig,
@@ -17,6 +22,11 @@ require([
   LayerList,
   BasemapGallery,
   Bookmarks,
+  GraphicsLayer,
+  Sketch,
+  geometryEngine,
+  Graphic,
+  webMercatorUtils,
   Measurement
 ) {
   const cfg = window.SORA_CONFIG;
@@ -80,6 +90,157 @@ require([
       view: view,
       container: "widgetBookmarks"
     });
+
+    // -------------------------------
+    // MISSION LAYER + STATE
+    // -------------------------------
+    const missionLayer = new GraphicsLayer({ title: "Mission planning" });
+    view.map.add(missionLayer);
+
+    let missionGeom = null;
+
+    function setMissionStatus(msg) {
+      const el = document.getElementById("missionStatus");
+      if (el) el.textContent = msg || "";
+    }
+
+    const missionSymbol = {
+      type: "simple-fill",
+      color: [0, 0, 0, 0.05],
+      outline: { color: [0, 0, 0, 0.9], width: 2 }
+    };
+
+    const bufferSymbol = {
+      type: "simple-fill",
+      color: [0, 120, 255, 0.15],
+      outline: { color: [0, 120, 255, 0.9], width: 2 }
+    };
+
+    // Sketch for drawing mission polygon
+    const sketchMission = new Sketch({
+      view: view,
+      layer: missionLayer,
+      creationMode: "single",
+      availableCreateTools: ["polygon"],
+      visibleElements: {
+        selectionTools: false,
+        settingsMenu: false,
+        undoRedoMenu: true
+      }
+    });
+
+    sketchMission.visible = false;
+    view.ui.add(sketchMission, "top-left");
+
+    // Button: Draw mission
+    document.getElementById("btnDrawMission").onclick = () => {
+      missionLayer.removeAll();
+      missionGeom = null;
+      sketchMission.visible = true;
+      setMissionStatus("Drawing mission polygon… double-click to finish.");
+      sketchMission.create("polygon");
+    };
+
+    // Sketch complete
+    sketchMission.on("create", (evt) => {
+      if (evt.state === "complete") {
+        evt.graphic.symbol = missionSymbol;
+        missionGeom = evt.graphic.geometry;
+        sketchMission.visible = false;
+        setMissionStatus("Mission area set.");
+      }
+    });
+
+    // Button: Clear mission
+    document.getElementById("btnClearMission").onclick = () => {
+      missionLayer.removeAll();
+      missionGeom = null;
+      setMissionStatus("Mission cleared.");
+    };
+
+    // -------------------------------
+    // IMPORT GEOJSON (Polygon)
+    // -------------------------------
+    const btnImport = document.getElementById("btnImportGeoJSON");
+    const fileInput = document.getElementById("fileGeoJSON");
+
+    btnImport.onclick = () => fileInput.click();
+
+    fileInput.addEventListener("change", async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const gj = JSON.parse(text);
+
+        let geom = null;
+        if (gj.type === "FeatureCollection" && gj.features?.length) {
+          geom = gj.features[0]?.geometry;
+        } else if (gj.type === "Feature" && gj.geometry) {
+          geom = gj.geometry;
+        } else if (gj.type && gj.coordinates) {
+          geom = gj;
+        }
+
+        if (!geom || geom.type !== "Polygon") {
+          setMissionStatus("GeoJSON must contain a Polygon (FeatureCollection with Polygon).");
+          return;
+        }
+
+        // GeoJSON Polygon -> ArcGIS rings (assumes coordinates are lon/lat)
+        const rings = geom.coordinates.map(ring => ring.map(([x, y]) => [x, y]));
+
+        const polygon4326 = {
+          type: "polygon",
+          rings: rings,
+          spatialReference: { wkid: 4326 }
+        };
+
+        const polyForView = webMercatorUtils.canProject(polygon4326, view.spatialReference)
+          ? webMercatorUtils.project(polygon4326, view.spatialReference)
+          : polygon4326;
+
+        missionLayer.removeAll();
+        missionLayer.add(new Graphic({
+          geometry: polyForView,
+          symbol: missionSymbol
+        }));
+
+        missionGeom = polyForView;
+        setMissionStatus("Mission area imported.");
+        view.goTo(polyForView);
+
+      } catch (e) {
+        console.error(e);
+        setMissionStatus("Import failed. Check file is valid GeoJSON.");
+      } finally {
+        fileInput.value = ""; // allow re-importing same file
+      }
+    });
+
+    // -------------------------------
+    // QUICK TEST BUFFER (100 m)
+    // -------------------------------
+    document.getElementById("btnBuffer100").onclick = () => {
+      if (!missionGeom) {
+        setMissionStatus("No mission area. Import or draw first.");
+        return;
+      }
+
+      // Clear and redraw mission
+      missionLayer.removeAll();
+      missionLayer.add(new Graphic({ geometry: missionGeom, symbol: missionSymbol }));
+
+      const buf = geometryEngine.geodesicBuffer(missionGeom, 100, "meters");
+
+      missionLayer.add(new Graphic({
+        geometry: buf,
+        symbol: bufferSymbol
+      }));
+
+      setMissionStatus("100 m buffer generated.");
+    };
     
     // -------------------------------
     // MEASUREMENT (stable iterative)
