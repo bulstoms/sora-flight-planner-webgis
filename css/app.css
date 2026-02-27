@@ -127,3 +127,20 @@ html, body, #viewDiv {
   cursor: pointer;
   border-radius: 4px;
 }
+
+/* Ensure measurement overlays never block the buttons */
+.tools-section { position: relative; }
+
+#measureButtons {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: white;
+  padding-bottom: 8px;
+}
+
+#measureWidget {
+  position: relative;
+  z-index: 1;
+  min-height: 80px;
+}
