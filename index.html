@@ -45,6 +45,27 @@
       <div id="widgetBookmarks" class="tools-section"></div>
     </details>
 
+    <details open class="tools-group" id="secMission">
+      <summary>Mission planning</summary>
+
+      <div class="tools-section">
+        <div class="hint" style="margin-bottom:8px;">
+          Import GeoJSON or draw a mission polygon. Then generate buffers.
+        </div>
+
+        <button id="btnImportGeoJSON" class="measure-btn">Import mission (GeoJSON)</button>
+        <input id="fileGeoJSON" type="file" accept=".geojson,.json,application/geo+json" style="display:none;" />
+
+        <button id="btnDrawMission" class="measure-btn">Draw mission area</button>
+        <button id="btnClearMission" class="measure-btn">Clear mission</button>
+
+        <div style="margin-top:10px; font-weight:600;">Quick test buffer</div>
+        <button id="btnBuffer100" class="measure-btn">Generate 100 m buffer</button>
+
+        <div id="missionStatus" style="font-size:12px; opacity:0.8; margin-top:8px;"></div>
+      </div>
+    </details>  
+
     <details class="tools-group">
       <summary>Measure</summary>
       
