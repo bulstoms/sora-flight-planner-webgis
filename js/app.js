@@ -106,14 +106,9 @@ require([
     btnClear.textContent = "Clear";
     btnClear.className = "measure-btn";
 
-    const btnStop = document.createElement("button");
-    btnStop.textContent = "Stop";
-    btnStop.className = "measure-btn";
-
     measureButtons.appendChild(btnDist);
     measureButtons.appendChild(btnArea);
     measureButtons.appendChild(btnClear);
-    measureButtons.appendChild(btnStop);
 
     // Widget Behavior
     btnDist.onclick = () => {
@@ -129,11 +124,6 @@ require([
     btnClear.onclick = () => {
       measurement.clear();              // clears drawn measurement
       // keep the current tool active so you can immediately measure again
-    };
-
-    btnStop.onclick = () => {
-      measurement.clear();
-      measurement.activeTool = null;    // fully stop measuring
     };
 
   });
