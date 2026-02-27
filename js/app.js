@@ -62,6 +62,25 @@ require([
   // WIDGETS
   // -------------------------------
   view.when(function () {
+
+    // Layer List
+    new LayerList({
+      view: view,
+      container: "widgetLayerList"
+    });
+
+    // Basemap Gallery
+    new BasemapGallery({
+      view: view,
+      container: "widgetBasemap"
+    });
+
+    // Bookmarks
+    new Bookmarks({
+      view: view,
+      container: "widgetBookmarks"
+    });
+    
     // -------------------------------
     // MEASUREMENT (stable iterative)
     // -------------------------------
