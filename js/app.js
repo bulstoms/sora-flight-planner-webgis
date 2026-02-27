@@ -7,8 +7,7 @@ require([
   "esri/widgets/LayerList",
   "esri/widgets/BasemapGallery",
   "esri/widgets/Bookmarks",
-  "esri/widgets/DistanceMeasurement2D",
-  "esri/widgets/AreaMeasurement2D"
+  "esri/widgets/Measurement"
 ], function (
   esriConfig,
   OAuthInfo,
@@ -18,8 +17,7 @@ require([
   LayerList,
   BasemapGallery,
   Bookmarks,
-  DistanceMeasurement2D,
-  AreaMeasurement2D
+  Measurement
 ) {
   const cfg = window.SORA_CONFIG;
 
@@ -64,77 +62,59 @@ require([
   // WIDGETS
   // -------------------------------
   view.when(function () {
-
-    new LayerList({
-      view: view,
-      container: "widgetLayerList"
-    });
-
-    new BasemapGallery({
-      view: view,
-      container: "widgetBasemap"
-    });
-
-    new Bookmarks({
-      view: view,
-      container: "widgetBookmarks"
-    });
-
-    // --- Measurement (Distance / Area) ---
+    // -------------------------------
+    // MEASUREMENT (stable iterative)
+    // -------------------------------
     const measureButtons = document.getElementById("measureButtons");
     const measureWidgetDiv = document.getElementById("measureWidget");
 
-    const distanceBtn = document.createElement("button");
-    distanceBtn.textContent = "Measure distance";
-    distanceBtn.className = "measure-btn";
+    // Create ONE measurement widget and keep it
+    const measurement = new Measurement({
+      view: view,
+      container: measureWidgetDiv
+    });
 
-    const areaBtn = document.createElement("button");
-    areaBtn.textContent = "Measure area";
-    areaBtn.className = "measure-btn";
+    // Buttons
+    const btnDist = document.createElement("button");
+    btnDist.textContent = "Measure distance";
+    btnDist.className = "measure-btn";
 
-    const clearBtn = document.createElement("button");
-    clearBtn.textContent = "Clear measurement";
-    clearBtn.className = "measure-btn";
+    const btnArea = document.createElement("button");
+    btnArea.textContent = "Measure area";
+    btnArea.className = "measure-btn";
 
-    measureButtons.appendChild(distanceBtn);
-    measureButtons.appendChild(areaBtn);
-    measureButtons.appendChild(clearBtn);
+    const btnClear = document.createElement("button");
+    btnClear.textContent = "Clear";
+    btnClear.className = "measure-btn";
 
-    let activeWidget = null;
-    
-    function activateMeasurement(type) {
-      // Remove previous widget completely
-      if (activeWidget) {
-        activeWidget.destroy();
-        activeWidget = null;
-      }
+    const btnStop = document.createElement("button");
+    btnStop.textContent = "Stop";
+    btnStop.className = "measure-btn";
 
-      measureWidgetDiv.innerHTML = "";
+    measureButtons.appendChild(btnDist);
+    measureButtons.appendChild(btnArea);
+    measureButtons.appendChild(btnClear);
+    measureButtons.appendChild(btnStop);
 
-      if (type === "distance") {
-        activeWidget = new DistanceMeasurement2D({
-          view: view,
-          container: measureWidgetDiv
-        });
-      }
+    // Widget Behavior
+    btnDist.onclick = () => {
+      measurement.clear();              // remove any old measurement
+      measurement.activeTool = "distance";
+    };
 
-      if (type === "area") {
-        activeWidget = new AreaMeasurement2D({
-          view: view,
-          container: measureWidgetDiv
-        });
-      }
-    }
+    btnArea.onclick = () => {
+      measurement.clear();
+      measurement.activeTool = "area";
+    };
 
-    distanceBtn.onclick = () => activateMeasurement("distance");
-    areaBtn.onclick = () => activateMeasurement("area");
+    btnClear.onclick = () => {
+      measurement.clear();              // clears drawn measurement
+      // keep the current tool active so you can immediately measure again
+    };
 
-    clearBtn.onclick = () => {
-      if (!activeWidget) return;
-
-      activeWidget.destroy();
-      activeWidget = null;
-      measureWidgetDiv.innerHTML = "";
+    btnStop.onclick = () => {
+      measurement.clear();
+      measurement.activeTool = null;    // fully stop measuring
     };
 
   });
