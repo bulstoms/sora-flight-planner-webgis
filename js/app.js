@@ -341,10 +341,6 @@ require([
         `CV: ${cvDistance.toFixed(1)} m | GRB increment: ${grbDistance} m | Total outer: ${totalOuter.toFixed(1)} m`
       ); 
     };
-
-
-
-    
     
     // -------------------------------
     // MEASUREMENT (stable iterative)
