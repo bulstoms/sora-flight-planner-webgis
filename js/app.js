@@ -287,6 +287,43 @@ require([
         Static GRB: ${d.grb} m
       `;
     };
+    // -------------------------------
+    // CV CALCULATION HELPERS
+    // -------------------------------
+    function clampNonNegative(x) {
+      return Math.max(0, Number(x) || 0);
+    }
+
+    /**
+     * CV without parachute (simple, adjustable model)
+     * Components:
+     *  - along-track drift during reaction: speed * reactionTime
+     *  - wind drift during reaction: wind * reactionTime
+     *  - position uncertainty: posUnc (meters)
+     */
+    function calcCvNoParachute({ speed, reactionTime, wind, posUnc }) {
+      const along = speed * reactionTime;
+      const windDrift = wind * reactionTime;
+      return along + windDrift + posUnc;
+    }
+
+    /**
+     * CV with parachute (adjustable model)
+     * Idea:
+     *  - reaction drift (same as above)
+     *  - wind drift during parachute descent: wind * (altitude / descentRate)
+     *  - plus position uncertainty
+     */
+    function calcCvWithParachute({ speed, reactionTime, wind, posUnc, altitude, descentRate }) {
+      const along = speed * reactionTime;
+      const windReaction = wind * reactionTime;
+
+      const timeToGround = altitude / Math.max(0.1, descentRate);
+      const windDescent = wind * timeToGround;
+
+      return along + windReaction + windDescent + posUnc;
+    }
+    
     document.getElementById("btnCalculateCV").onclick = () => {
       if (!missionGeom) {
         setMissionStatus("No mission area.");
@@ -301,19 +338,37 @@ require([
 
       const drone = drones[droneKey];
 
-      const speed = Number(document.getElementById("inputSpeed").value) || 0;
-      const altitude = Number(document.getElementById("inputAltitude").value) || 0;
+      const speed = clampNonNegative(document.getElementById("inputSpeed").value);
+      const altitude = clampNonNegative(document.getElementById("inputAltitude").value);
+      const reactionTime = clampNonNegative(document.getElementById("inputReaction").value);
+      const wind = clampNonNegative(document.getElementById("inputWind").value);
+      const posUnc = clampNonNegative(document.getElementById("inputPosUnc").value);
+
       const useParachute = document.getElementById("chkParachute").checked;
 
-      // --- Simplified CV logic (placeholder for now)
-      let cvDistance = speed * 3;   // 3-second reaction model
+      let cvDistance = 0;
 
-      if (useParachute && altitude > drone.parachuteMinHeight) {
-        cvDistance = speed * 1.5;  // reduced horizontal drift (placeholder logic)
+      // Only apply parachute method if checked AND altitude is above min parachute height
+      if (useParachute && altitude >= drone.parachuteMinHeight) {
+        cvDistance = calcCvWithParachute({
+          speed,
+          reactionTime,
+          wind,
+          posUnc,
+          altitude,
+          descentRate: drone.parachuteDescentRate
+        });
+      } else {
+        cvDistance = calcCvNoParachute({
+          speed,
+          reactionTime,
+          wind,
+          posUnc
+        });
       }
 
       const grbDistance = drone.grb;
-
+      
       missionLayer.removeAll();
       missionLayer.add(new Graphic({ geometry: missionGeom, symbol: missionSymbol }));
 
