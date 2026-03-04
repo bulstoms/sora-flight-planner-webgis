@@ -326,9 +326,9 @@ function clampNonNegative(v) {
     // Drone definitions with default GRB + references + MOC defaults
     const drones = {
       m350: {
-        name: "DJI M350",
+        name: "DJI M350 RTK",
         wingspan: 1.4,
-        mtow: 12.9,
+        mtow: 9.2,
         parachuteMinHeight: 39,
         defaultGRB: 245,
         grbRef: "as defined in PRS Kronos M350 User's Manual and Instructions, page 101",
