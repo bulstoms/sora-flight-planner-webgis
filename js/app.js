@@ -30,6 +30,15 @@ require([
   Measurement
 ) {
   const cfg = window.SORA_CONFIG;
+  
+  // ---------- helpers ----------
+function clampNonNegative(v) {
+  // Handles: empty string, comma decimals ("17,2"), undefined
+  const s = String(v ?? "").trim().replace(",", ".");
+  const n = Number(s);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, n);
+}
 
   // Tell ArcGIS which portal we are using
   esriConfig.portalUrl = cfg.portalUrl;
