@@ -84,7 +84,11 @@
         <button id="btnDrawMission" class="measure-btn">Draw mission area</button>
         <button id="btnClearMission" class="measure-btn">Clear mission</button>
 
-        <div style="margin-top:12px; font-weight:600;">Drone</div>
+        <div id="missionStatus" style="font-size:12px; opacity:0.8; margin-top:8px;"></div>
+
+        <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:10px 0;" />
+
+        <div style="margin-top:8px; font-weight:600;">Drone</div>
 
         <select id="droneSelect" style="width:100%; margin-bottom:8px;">
           <option value="">-- Select drone --</option>
@@ -94,39 +98,142 @@
 
         <div id="droneInfo" style="font-size:12px; margin-bottom:8px;"></div>
 
-        <div style="font-weight:600;">Operational inputs</div>
+        <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:10px 0;" />
 
-        <label style="font-size:12px;">Acquisition speed (m/s)</label>
-        <input id="inputSpeed" type="number" value="10" style="width:100%; margin-bottom:6px;" />
+        <div style="font-weight:600;">Shared operational inputs</div>
 
-        <label style="font-size:12px;">Altitude AGL (m)</label>
-        <input id="inputAltitude" type="number" value="60" style="width:100%; margin-bottom:6px;" />
+        <label style="font-size:12px;">Max operational speed V0 (m/s)</label>
+        <input id="inputV0" type="number" value="17" step="0.1" style="width:100%; margin-bottom:6px;" />
 
-        <label style="font-size:12px;">
-          <input type="checkbox" id="chkParachute" />
+        <label style="font-size:12px;">Max altitude / HT (m)</label>
+        <input id="inputHT" type="number" value="120" step="1" style="width:100%; margin-bottom:6px;" />
+
+        <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:10px 0;" />
+
+        <div style="font-weight:600;">Contingency Volume (CV)</div>
+
+        <label style="font-size:12px; display:block; margin-bottom:6px;">
+          <input type="checkbox" id="chkCvParachute" />
           Use parachute contingency method
         </label>
 
-        <div style="margin-top:10px; font-weight:600;">Contingency parameters</div>
-
-        <label style="font-size:12px;">Reaction time (s)</label>
-        <input id="inputReaction" type="number" value="3" step="0.5" style="width:100%; margin-bottom:6px;" />
-
-        <label style="font-size:12px;">Wind speed (m/s)</label>
-        <input id="inputWind" type="number" value="5" step="0.5" style="width:100%; margin-bottom:6px;" />
-
-        <label style="font-size:12px;">Position uncertainty (m)</label>
-        <input id="inputPosUnc" type="number" value="5" step="1" style="width:100%; margin-bottom:6px;" />
-
-        <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">
-          (You can refine these later. For now this makes CV fully adjustable.)
+        <div style="display:flex; gap:6px;">
+          <div style="flex:1;">
+            <label style="font-size:12px;">S<sub>GNSS</sub> (m)</label>
+            <input id="cvSgnss" type="number" value="3" step="0.1" style="width:100%; margin-bottom:6px;" />
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12px;">S<sub>POS</sub> (m)</label>
+            <input id="cvSpos" type="number" value="3" step="0.1" style="width:100%; margin-bottom:6px;" />
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12px;">S<sub>K</sub> (m)</label>
+            <input id="cvSk" type="number" value="1" step="0.1" style="width:100%; margin-bottom:6px;" />
+          </div>
         </div>
 
-        <button id="btnCalculateCV" class="measure-btn" style="margin-top:8px;">
-          Calculate CV + GRB
-        </button>
+        <!-- CV no-parachute block -->
+        <div id="cvNoParaBlock">
+          <div style="display:flex; gap:6px;">
+            <div style="flex:1;">
+              <label style="font-size:12px;">t<sub>R</sub> reaction time (s)</label>
+              <input id="cvTrStop" type="number" value="3" step="0.01" style="width:100%; margin-bottom:6px;" />
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:12px;">θ pitch angle (deg)</label>
+              <input id="cvTheta" type="number" value="30" step="0.1" style="width:100%; margin-bottom:6px;" />
+            </div>
+          </div>
+          <div style="font-size:12px; opacity:0.75; margin-bottom:6px;">
+            Stop-UA method: S<sub>CM</sub>=0.5·V0²/(g·tan(θ))
+          </div>
+        </div>
 
-        <div id="missionStatus" style="font-size:12px; opacity:0.8; margin-top:8px;"></div>
+        <!-- CV parachute block -->
+        <div id="cvParaBlock" style="display:none;">
+          <div style="display:flex; gap:6px;">
+            <div style="flex:1;">
+              <label style="font-size:12px;">T<sub>R</sub> response time (s)</label>
+              <input id="cvTR" type="number" value="1.41" step="0.01" style="width:100%; margin-bottom:6px;" />
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:12px;">T<sub>P</sub> parachute open time (s)</label>
+              <input id="cvTP" type="number" value="1.32" step="0.01" style="width:100%; margin-bottom:6px;" />
+            </div>
+          </div>
+          <div style="font-size:12px; opacity:0.75; margin-bottom:6px;">
+            Parachute method: S<sub>CV</sub>=S<sub>GNSS</sub>+S<sub>POS</sub>+S<sub>K</sub>+V0·T<sub>R</sub>+V0·T<sub>P</sub>
+          </div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:10px 0;" />
+
+        <div style="font-weight:600;">Ground Risk Buffer (GRB)</div>
+
+        <label style="font-size:12px; display:block; margin-bottom:6px;">
+          <input type="checkbox" id="chkCustomGRB" />
+          Custom GRB calculation <span style="opacity:0.75;">(MOC Light-UAS.2511-01)</span>
+        </label>
+
+        <div id="grbDefaults" style="font-size:12px; opacity:0.8; margin-bottom:6px;"></div>
+
+        <div id="grbCustomBlock" style="display:none;">
+          <div style="display:flex; gap:6px;">
+            <div style="flex:1;">
+              <label style="font-size:12px;">L<sub>H</sub> (s)</label>
+              <input id="grbLH" type="number" value="1.0" step="0.01" style="width:100%; margin-bottom:6px;" />
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:12px;">L<sub>S</sub> (s)</label>
+              <input id="grbLS" type="number" value="1.41" step="0.01" style="width:100%; margin-bottom:6px;" />
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:12px;">V<sub>wind</sub> (m/s)</label>
+              <input id="grbVwind" type="number" value="7.2" step="0.01" style="width:100%; margin-bottom:6px;" />
+            </div>
+          </div>
+
+          <div style="display:flex; gap:6px;">
+            <div style="flex:1;">
+              <label style="font-size:12px;">S<sub>P</sub> (m/s)</label>
+              <input id="grbSp" type="number" value="6.9" step="0.01" style="width:100%; margin-bottom:6px;" />
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:12px;">T = L<sub>H</sub> + L<sub>S</sub> (s)</label>
+              <input id="grbT" type="number" value="2.41" step="0.01" style="width:100%; margin-bottom:6px;" disabled />
+            </div>
+          </div>
+
+          <div style="font-size:12px; opacity:0.75;">
+            D1 = V0·T; D2p = (Vwind·HT/Sp)·1.1; GRB = D1 + D2p
+          </div>
+        </div>
+
+        <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:10px 0;" />
+
+        <button id="btnCalcBuffers" class="measure-btn">Calculate buffers</button>
+        <button id="btnResetBuffers" class="measure-btn">Reset buffer calculation</button>
+
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; font-size:12px;">
+          <div style="background:rgba(0,0,0,0.04); padding:6px 8px; border-radius:8px;">
+            <b>AOI</b>: <span id="outAoiHa">–</span> ha
+          </div>
+          <div style="background:rgba(0,0,0,0.04); padding:6px 8px; border-radius:8px;">
+            <b>CV</b>: <span id="outCvHa">–</span> ha
+          </div>
+          <div style="background:rgba(0,0,0,0.04); padding:6px 8px; border-radius:8px;">
+            <b>GRB</b>: <span id="outGrbHa">–</span> ha
+          </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; font-size:12px;">
+          <div style="background:rgba(0,0,0,0.04); padding:6px 8px; border-radius:8px;">
+            <b>CV</b>: <span id="outCvM">–</span> m
+          </div>
+          <div style="background:rgba(0,0,0,0.04); padding:6px 8px; border-radius:8px;">
+            <b>GRB</b>: <span id="outGrbM">–</span> m
+          </div>
+        </div>
       </div>
     </details>  
 
