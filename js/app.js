@@ -144,7 +144,7 @@ require([
     // Sketch complete
     sketchMission.on("create", (evt) => {
       if (evt.state === "complete") {
-        evt.graphic.symbol = missionSymbol;
+        evt.graphic.symbol = aoiSymbol;
         missionGeom = evt.graphic.geometry;
         sketchMission.visible = false;
         setMissionStatus("Mission area set.");
@@ -226,7 +226,7 @@ require([
         missionLayer.removeAll();
         missionLayer.add(new Graphic({
           geometry: polyForView,
-          symbol: missionSymbol
+          symbol: aoiSymbol
         }));
 
         missionGeom = polyForView;
@@ -247,157 +247,308 @@ require([
     });
 
     // -------------------------------
-    // DRONE DEFINITIONS
+    // DRONE + BUFFER ENGINE (CV + GRB)
     // -------------------------------
+
+    // Add a label layer for text labels
+    const labelLayer = new GraphicsLayer({ title: "SORA labels" });
+    view.map.add(labelLayer);
+
+    function clearBuffersKeepMission() {
+      // Keep the mission polygon if it exists; rebuild all buffers/labels
+      const missionGraphic = missionGeom
+        ? new Graphic({ geometry: missionGeom, symbol: aoiSymbol })
+        : null;
+
+      missionLayer.removeAll();
+      labelLayer.removeAll();
+
+      if (missionGraphic) missionLayer.add(missionGraphic);
+    }
+
+    // Requested colors
+    const aoiSymbol = {
+      type: "simple-fill",
+      color: [255, 0, 0, 0.05],
+      outline: { color: [255, 0, 0, 0.95], width: 2 }
+    };
+
+    const cvSymbol = {
+      type: "simple-fill",
+      color: [255, 215, 0, 0.18],
+      outline: { color: [200, 150, 0, 0.95], width: 2 }
+    };
+
+    const grbSymbol = {
+      type: "simple-fill",
+      color: [0, 180, 0, 0.14],
+      outline: { color: [0, 140, 0, 0.95], width: 2 }
+    };
+
+    function setOut(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    }
+
+    function haFromGeom(geom) {
+      const sqm = Math.abs(geometryEngine.geodesicArea(geom, "square-meters"));
+      return sqm / 10000;
+    }
+
+    function addLabel(text, geom) {
+      // put label at extent center (good enough for now)
+      const pt = geom?.extent?.center;
+      if (!pt) return;
+      labelLayer.add(
+        new Graphic({
+          geometry: pt,
+          symbol: {
+            type: "text",
+            text,
+            color: "black",
+            haloColor: "white",
+            haloSize: 2,
+            font: { size: 12, family: "Arial", weight: "bold" }
+          }
+        })
+      );
+    }
+
+    // Drone definitions with default GRB + references + MOC defaults
     const drones = {
       m350: {
         name: "DJI M350",
         wingspan: 1.4,
         mtow: 12.9,
         parachuteMinHeight: 39,
-        parachuteDescentRate: 6, // m/s (placeholder; adjust later)
-        grb: 50   // static test value (we adjust later)
+        defaultGRB: 245,
+        grbRef: "as defined in PRS Kronos M350 User's Manual and Instructions, page 101",
+        grbCalcDefaults: { V: 17, Vwind: 9.34, HT: 120, Sp: 5.1, LH: 1.0, LS: 1.41 },
+        cvDefaults: { sgnss: 3, spos: 3, sk: 1, trStop: 3, theta: 30, TR: 1.41, TP: 1.32 }
       },
       tundra2: {
-        name: "Tundra 2 Endurance",
+        name: "Hexadrone Tundra 2 Endurance",
         wingspan: 1.84,
         mtow: 12.9,
         parachuteMinHeight: 47,
-        parachuteDescentRate: 6, // m/s (placeholder; adjust later)
-        grb: 80   // static test value
+        defaultGRB: 179,
+        grbRef: "as defined in Hexadrone Containment Flight Manual for Tundra 2.1, page 16",
+        grbCalcDefaults: { V: 17, Vwind: 7.2, HT: 120, Sp: 6.9, LH: 1.0, LS: 1.41 },
+        cvDefaults: { sgnss: 3, spos: 3, sk: 1, trStop: 3, theta: 30, TR: 1.41, TP: 1.32 }
       }
     };
 
     const droneSelect = document.getElementById("droneSelect");
     const droneInfo = document.getElementById("droneInfo");
+    const grbDefaultsEl = document.getElementById("grbDefaults");
+
+    // CV toggles
+    const chkCvParachute = document.getElementById("chkCvParachute");
+    const cvNoParaBlock = document.getElementById("cvNoParaBlock");
+    const cvParaBlock = document.getElementById("cvParaBlock");
+
+    chkCvParachute.onchange = () => {
+      const usePara = chkCvParachute.checked;
+      if (cvNoParaBlock) cvNoParaBlock.style.display = usePara ? "none" : "block";
+      if (cvParaBlock) cvParaBlock.style.display = usePara ? "block" : "none";
+    };
+
+    // GRB toggles
+    const chkCustomGRB = document.getElementById("chkCustomGRB");
+    const grbCustomBlock = document.getElementById("grbCustomBlock");
+
+    chkCustomGRB.onchange = () => {
+      if (grbCustomBlock) grbCustomBlock.style.display = chkCustomGRB.checked ? "block" : "none";
+    };
+
+    // Keep GRB T synced to LH + LS
+    function updateGrbT() {
+      const LH = clampNonNegative(document.getElementById("grbLH")?.value);
+      const LS = clampNonNegative(document.getElementById("grbLS")?.value);
+      const T = (LH + LS);
+      const tEl = document.getElementById("grbT");
+      if (tEl) tEl.value = T.toFixed(2);
+    }
+    document.getElementById("grbLH")?.addEventListener("input", updateGrbT);
+    document.getElementById("grbLS")?.addEventListener("input", updateGrbT);
+
+    function populateDefaults(droneKey) {
+      const d = drones[droneKey];
+      if (!d) return;
+
+      // Shared
+      document.getElementById("inputV0").value = d.grbCalcDefaults.V;
+      document.getElementById("inputHT").value = d.grbCalcDefaults.HT;
+
+      // CV params
+      document.getElementById("cvSgnss").value = d.cvDefaults.sgnss;
+      document.getElementById("cvSpos").value = d.cvDefaults.spos;
+      document.getElementById("cvSk").value = d.cvDefaults.sk;
+      document.getElementById("cvTrStop").value = d.cvDefaults.trStop;
+      document.getElementById("cvTheta").value = d.cvDefaults.theta;
+      document.getElementById("cvTR").value = d.cvDefaults.TR;
+      document.getElementById("cvTP").value = d.cvDefaults.TP;
+
+      // GRB custom defaults
+      document.getElementById("grbLH").value = d.grbCalcDefaults.LH;
+      document.getElementById("grbLS").value = d.grbCalcDefaults.LS;
+      document.getElementById("grbVwind").value = d.grbCalcDefaults.Vwind;
+      document.getElementById("grbSp").value = d.grbCalcDefaults.Sp;
+      updateGrbT();
+
+      // Drone info panel
+      droneInfo.innerHTML = `
+        <b>${d.name}</b><br>
+        Wingspan: ${d.wingspan} m<br>
+        MTOW: ${d.mtow} kg<br>
+        Parachute min height: ${d.parachuteMinHeight} m AGL<br><br>
+        <b>Default GRB:</b> ${d.defaultGRB} m<br>
+        <span style="opacity:0.8;">${d.grbRef}</span>
+      `;
+
+      if (grbDefaultsEl) {
+        grbDefaultsEl.textContent = `Default GRB: ${d.defaultGRB} m (${d.grbRef})`;
+      }
+    }
 
     droneSelect.onchange = () => {
       const key = droneSelect.value;
-      if (!key || !drones[key]) {
+      if (!key) {
         droneInfo.innerHTML = "";
+        if (grbDefaultsEl) grbDefaultsEl.textContent = "";
         return;
       }
-
-      const d = drones[key];
-
-      droneInfo.innerHTML = `
-        Wingspan: ${d.wingspan} m<br>
-        MTOW: ${d.mtow} kg<br>
-        Parachute min height: ${d.parachuteMinHeight} m<br>
-        Static GRB: ${d.grb} m
-      `;
+      populateDefaults(key);
     };
-    // -------------------------------
-    // CV CALCULATION HELPERS
-    // -------------------------------
-    function clampNonNegative(x) {
-      return Math.max(0, Number(x) || 0);
+
+    // Reset buffers
+    document.getElementById("btnResetBuffers").onclick = () => {
+      const key = droneSelect.value;
+      if (!key) {
+        setMissionStatus("Select a drone first.");
+        return;
+      }
+      populateDefaults(key);
+      setMissionStatus("Defaults restored.");
+    };
+
+    // ----- CV formulas (from SORA) -----
+    function degToRad(deg) {
+      return (deg * Math.PI) / 180;
     }
 
     /**
-     * CV without parachute (simple, adjustable model)
-     * Components:
-     *  - along-track drift during reaction: speed * reactionTime
-     *  - wind drift during reaction: wind * reactionTime
-     *  - position uncertainty: posUnc (meters)
+     * Stop-UA (no parachute)
+     * S_CV = S_GNSS + S_POS + S_K + V0*tR + S_CM
+     * S_CM = 0.5 * V0^2 / (g * tan(theta))
      */
-    function calcCvNoParachute({ speed, reactionTime, wind, posUnc }) {
-      const along = speed * reactionTime;
-      const windDrift = wind * reactionTime;
-      return along + windDrift + posUnc;
+    function calcCvStopUA({ sgnss, spos, sk, v0, tR, thetaDeg }) {
+      const g = 9.81;
+      const theta = Math.max(0.1, thetaDeg);
+      const sCM = 0.5 * (v0 * v0) / (g * Math.tan(degToRad(theta)));
+      const sRZ = v0 * tR;
+      return sgnss + spos + sk + sRZ + sCM;
     }
 
     /**
-     * CV with parachute (adjustable model)
-     * Idea:
-     *  - reaction drift (same as above)
-     *  - wind drift during parachute descent: wind * (altitude / descentRate)
-     *  - plus position uncertainty
+     * Parachute CV
+     * S_CV = S_GNSS + S_POS + S_K + (V0*TR) + (V0*TP)
      */
-    function calcCvWithParachute({ speed, reactionTime, wind, posUnc, altitude, descentRate }) {
-      const along = speed * reactionTime;
-      const windReaction = wind * reactionTime;
-
-      const timeToGround = altitude / Math.max(0.1, descentRate);
-      const windDescent = wind * timeToGround;
-
-      return along + windReaction + windDescent + posUnc;
+    function calcCvParachute({ sgnss, spos, sk, v0, TR, TP }) {
+      return sgnss + spos + sk + (v0 * TR) + (v0 * TP);
     }
-    
-    document.getElementById("btnCalculateCV").onclick = () => {
+
+    // ----- GRB MOC Light-UAS.2511-01 -----
+    function calcGrbMoc({ v0, LH, LS, vwind, HT, Sp }) {
+      const T = LH + LS;
+      const D1 = v0 * T;
+      const D2p = ((vwind * HT) / Math.max(0.1, Sp)) * 1.1;
+      return { T, D1, D2p, grb: D1 + D2p };
+    }
+
+    // Calculate buffers
+    document.getElementById("btnCalcBuffers").onclick = () => {
       if (!missionGeom) {
-        setMissionStatus("No mission area.");
+        setMissionStatus("No mission area. Draw or import a mission first.");
         return;
       }
 
       const droneKey = droneSelect.value;
       if (!droneKey) {
-        setMissionStatus("Select a drone.");
+        setMissionStatus("Select a drone first.");
         return;
       }
 
-      const drone = drones[droneKey];
+      const d = drones[droneKey];
 
-      const speed = clampNonNegative(document.getElementById("inputSpeed").value);
-      const altitude = clampNonNegative(document.getElementById("inputAltitude").value);
-      const reactionTime = clampNonNegative(document.getElementById("inputReaction").value);
-      const wind = clampNonNegative(document.getElementById("inputWind").value);
-      const posUnc = clampNonNegative(document.getElementById("inputPosUnc").value);
+      const v0 = clampNonNegative(document.getElementById("inputV0").value);
+      const HT = clampNonNegative(document.getElementById("inputHT").value);
 
-      const useParachute = document.getElementById("chkParachute").checked;
+      // CV inputs
+      const sgnss = clampNonNegative(document.getElementById("cvSgnss").value);
+      const spos = clampNonNegative(document.getElementById("cvSpos").value);
+      const sk = clampNonNegative(document.getElementById("cvSk").value);
 
-      let cvDistance = 0;
-
-      // Only apply parachute method if checked AND altitude is above min parachute height
-      if (useParachute && altitude >= drone.parachuteMinHeight) {
-        cvDistance = calcCvWithParachute({
-          speed,
-          reactionTime,
-          wind,
-          posUnc,
-          altitude,
-          descentRate: drone.parachuteDescentRate
-        });
+      let cvMeters = 0;
+      if (chkCvParachute.checked) {
+        const TR = clampNonNegative(document.getElementById("cvTR").value);
+        const TP = clampNonNegative(document.getElementById("cvTP").value);
+        cvMeters = calcCvParachute({ sgnss, spos, sk, v0, TR, TP });
       } else {
-        cvDistance = calcCvNoParachute({
-          speed,
-          reactionTime,
-          wind,
-          posUnc
-        });
+        const tR = clampNonNegative(document.getElementById("cvTrStop").value);
+        const thetaDeg = clampNonNegative(document.getElementById("cvTheta").value);
+        cvMeters = calcCvStopUA({ sgnss, spos, sk, v0, tR, thetaDeg });
       }
 
-      const grbDistance = drone.grb;
-      
+      // GRB distance
+      let grbMeters = d.defaultGRB;
+      if (chkCustomGRB.checked) {
+        const LH = clampNonNegative(document.getElementById("grbLH").value);
+        const LS = clampNonNegative(document.getElementById("grbLS").value);
+        const vwind = clampNonNegative(document.getElementById("grbVwind").value);
+        const Sp = clampNonNegative(document.getElementById("grbSp").value);
+
+        const res = calcGrbMoc({ v0, LH, LS, vwind, HT, Sp });
+        grbMeters = res.grb;
+
+        // Update T display
+        const tEl = document.getElementById("grbT");
+        if (tEl) tEl.value = res.T.toFixed(2);
+      }
+
+      // Redraw with requested symbology
       missionLayer.removeAll();
-      missionLayer.add(new Graphic({ geometry: missionGeom, symbol: missionSymbol }));
+      labelLayer.removeAll();
 
-      const cvBuffer = geometryEngine.geodesicBuffer(missionGeom, cvDistance, "meters");
-      const grbBuffer = geometryEngine.geodesicBuffer(cvBuffer, grbDistance, "meters");
+      missionLayer.add(new Graphic({ geometry: missionGeom, symbol: aoiSymbol }));
 
-      missionLayer.add(new Graphic({
-        geometry: cvBuffer,
-        symbol: {
-          type: "simple-fill",
-          color: [255, 165, 0, 0.15],
-          outline: { color: [255, 140, 0], width: 2 }
-        }
-      }));
+      const cvGeom = geometryEngine.geodesicBuffer(missionGeom, cvMeters, "meters");
+      const grbGeom = geometryEngine.geodesicBuffer(cvGeom, grbMeters, "meters");
 
-      missionLayer.add(new Graphic({
-        geometry: grbBuffer,
-        symbol: {
-          type: "simple-fill",
-          color: [255, 0, 0, 0.15],
-          outline: { color: [200, 0, 0], width: 2 }
-        }
-      }));
+      missionLayer.add(new Graphic({ geometry: cvGeom, symbol: cvSymbol }));
+      missionLayer.add(new Graphic({ geometry: grbGeom, symbol: grbSymbol }));
 
-      const totalOuter = cvDistance + grbDistance;
-      setMissionStatus(
-        `CV: ${cvDistance.toFixed(1)} m | GRB increment: ${grbDistance} m | Total outer: ${totalOuter.toFixed(1)} m`
-      ); 
-    };
+      // Areas in ha
+      const aoiHa = haFromGeom(missionGeom);
+      const cvHa = haFromGeom(cvGeom);
+      const grbHa = haFromGeom(grbGeom);
+
+      setOut("outAoiHa", aoiHa.toFixed(2));
+      setOut("outCvHa", cvHa.toFixed(2));
+      setOut("outGrbHa", grbHa.toFixed(2));
+      setOut("outCvM", cvMeters.toFixed(1));
+      setOut("outGrbM", grbMeters.toFixed(1));
+
+      // Labels (simple)
+      addLabel(`AOI: ${aoiHa.toFixed(2)} ha`, missionGeom);
+      addLabel(`CV: ${cvMeters.toFixed(1)} m\n${cvHa.toFixed(2)} ha`, cvGeom);
+      addLabel(`GRB: ${grbMeters.toFixed(1)} m\n${grbHa.toFixed(2)} ha`, grbGeom);
+
+      setMissionStatus(`Buffers generated. CV=${cvMeters.toFixed(1)}m | GRB=${grbMeters.toFixed(1)}m`);
+
+      // Zoom to GRB
+      view.goTo(grbGeom.extent.expand(1.15), { padding: 60 });
+    }; 
     
     // -------------------------------
     // MEASUREMENT (stable iterative)
