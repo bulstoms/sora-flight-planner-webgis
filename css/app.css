@@ -162,9 +162,9 @@ html, body {
 .legend {
   position: fixed;
   left: 12px;
-  bottom: 12px;
+  bottom: 60px;
   z-index: 25;
-  background: white;
+  background: rgba(255,255,255,0.9);
   border: 1px solid #e5e5e5;
   border-radius: 12px;
   padding: 10px 12px;
