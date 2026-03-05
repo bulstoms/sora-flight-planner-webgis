@@ -145,16 +145,23 @@ function clampNonNegative(v) {
       if (el) el.textContent = msg || "";
     }
 
-    const missionSymbol = {
+    // Requested colors (AOI/CV/GRB)
+    const aoiSymbol = {
       type: "simple-fill",
-      color: [0, 0, 0, 0.05],
-      outline: { color: [0, 0, 0, 0.9], width: 2 }
+      color: [0, 180, 0, 0.14],
+      outline: { color: [0, 140, 0, 0.95], width: 2 }
     };
 
-    const bufferSymbol = {
+    const cvSymbol = {
       type: "simple-fill",
-      color: [0, 120, 255, 0.15],
-      outline: { color: [0, 120, 255, 0.9], width: 2 }
+      color: [255, 215, 0, 0.18],
+      outline: { color: [200, 150, 0, 0.95], width: 2 }
+    };
+
+    const grbSymbol = {
+      type: "simple-fill",
+      color: [255, 0, 0, 0.05],
+      outline: { color: [255, 0, 0, 0.95], width: 2 }
     };
 
     // Sketch for drawing mission polygon
@@ -197,10 +204,12 @@ function clampNonNegative(v) {
     // Button: Clear mission
     document.getElementById("btnClearMission").onclick = () => {
       missionLayer.removeAll();
+      labelLayer.removeAll();
       missionGeom = null;
+      clearOutputs();
       setMissionStatus("Mission cleared.");
     };
-
+    
     // -------------------------------
     // IMPORT GEOJSON (Polygon)
     // -------------------------------
@@ -307,28 +316,26 @@ function clampNonNegative(v) {
       if (missionGraphic) missionLayer.add(missionGraphic);
     }
 
-    // Requested colors
-    const aoiSymbol = {
-      type: "simple-fill",
-      color: [255, 0, 0, 0.05],
-      outline: { color: [255, 0, 0, 0.95], width: 2 }
-    };
-
-    const cvSymbol = {
-      type: "simple-fill",
-      color: [255, 215, 0, 0.18],
-      outline: { color: [200, 150, 0, 0.95], width: 2 }
-    };
-
-    const grbSymbol = {
-      type: "simple-fill",
-      color: [0, 180, 0, 0.14],
-      outline: { color: [0, 140, 0, 0.95], width: 2 }
-    };
-
     function setOut(id, val) {
       const el = document.getElementById(id);
       if (el) el.textContent = val;
+    }
+    
+    function clearOutputs() {
+      setOut("outAoiHa", "—");
+      setOut("outCvHa", "—");
+      setOut("outGrbHa", "—");
+      setOut("outCvM", "—");
+      setOut("outGrbM", "—");
+    }
+
+    function redrawMissionOnly() {
+      // Clears CV/GRB + labels, but keeps AOI if present
+      labelLayer.removeAll();
+      missionLayer.removeAll();
+      if (missionGeom) {
+        missionLayer.add(new Graphic({ geometry: missionGeom, symbol: aoiSymbol }));
+      }
     }
 
     function haFromGeom(geom) {
@@ -336,23 +343,34 @@ function clampNonNegative(v) {
       return sqm / 10000;
     }
 
-    function addLabel(text, geom) {
-      // put label at extent center (good enough for now)
-      const pt = geom?.extent?.center;
-      if (!pt) return;
-      labelLayer.add(
-        new Graphic({
-          geometry: pt,
-          symbol: {
-            type: "text",
-            text,
-            color: "black",
-            haloColor: "white",
-            haloSize: 2,
-            font: { size: 12, family: "Arial", weight: "bold" }
-          }
-        })
-      );
+    function addLabel(text, geom, where = "center") {
+      const ex = geom?.extent;
+      if (!ex) return;
+
+      let pt;
+      if (where === "tl") pt = ex.clone().expand(1).xmin !== undefined ? ex : ex; // keep simple
+      // simplest reliable approach:
+      const xmid = (ex.xmin + ex.xmax) / 2;
+      const ymid = (ex.ymin + ex.ymax) / 2;
+
+      if (where === "tl") pt = { type:"point", x: ex.xmin, y: ex.ymax, spatialReference: ex.spatialReference };
+      else if (where === "tr") pt = { type:"point", x: ex.xmax, y: ex.ymax, spatialReference: ex.spatialReference };
+      else if (where === "br") pt = { type:"point", x: ex.xmax, y: ex.ymin, spatialReference: ex.spatialReference };
+      else pt = { type:"point", x: xmid, y: ymid, spatialReference: ex.spatialReference };
+
+      labelLayer.add(new Graphic({
+        geometry: pt,
+        symbol: {
+          type: "text",
+          text,
+          color: "black",
+          haloColor: "white",
+          haloSize: 2,
+          font: { size: 12, family: "Arial", weight: "bold" },
+          horizontalAlignment: "left",
+          verticalAlignment: "top"
+        }
+      }));
     }
 
     // Drone definitions with default GRB + references + MOC defaults
@@ -462,16 +480,17 @@ function clampNonNegative(v) {
       populateDefaults(key);
     };
 
-    // Reset buffers
     document.getElementById("btnResetBuffers").onclick = () => {
+      // Remove buffers + labels + stats
+      redrawMissionOnly();
+      clearOutputs();
+
+      // Restore defaults for the selected drone (if any)
       const key = droneSelect.value;
-      if (!key) {
-        setMissionStatus("Select a drone first.");
-        return;
-      }
-      populateDefaults(key);
-      setMissionStatus("Defaults restored.");
-    };
+      if (key) populateDefaults(key);
+
+      setMissionStatus("Reset done. AOI kept. Buffers/labels cleared.");
+    };  
 
     // ----- CV formulas (from SORA) -----
     function degToRad(deg) {
@@ -579,12 +598,12 @@ function clampNonNegative(v) {
       setOut("outGrbHa", grbHa.toFixed(2));
       setOut("outCvM", cvMeters.toFixed(1));
       setOut("outGrbM", grbMeters.toFixed(1));
-
+      
       // Labels (simple)
-      addLabel(`AOI: ${aoiHa.toFixed(2)} ha`, missionGeom);
-      addLabel(`CV: ${cvMeters.toFixed(1)} m\n${cvHa.toFixed(2)} ha`, cvGeom);
-      addLabel(`GRB: ${grbMeters.toFixed(1)} m\n${grbHa.toFixed(2)} ha`, grbGeom);
-
+      addLabel(`AOI: ${aoiHa.toFixed(2)} ha`, missionGeom, "tl");
+      addLabel(`CV: ${cvMeters.toFixed(1)} m\n${cvHa.toFixed(2)} ha`, cvGeom, "tr");
+      addLabel(`GRB: ${grbMeters.toFixed(1)} m\n${grbHa.toFixed(2)} ha`, grbGeom, "br");
+      
       setMissionStatus(`Buffers generated. CV=${cvMeters.toFixed(1)}m | GRB=${grbMeters.toFixed(1)}m`);
 
       // Zoom to GRB
