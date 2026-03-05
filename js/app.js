@@ -13,7 +13,10 @@ require([
   "esri/Graphic",
   "esri/geometry/support/webMercatorUtils",
   "esri/widgets/Measurement",
-  "esri/widgets/ScaleBar"
+  "esri/widgets/ScaleBar",
+  "esri/widgets/Home",
+  "esri/widgets/Locate" 
+  
 ], function (
   esriConfig,
   OAuthInfo,
@@ -29,7 +32,9 @@ require([
   Graphic,
   webMercatorUtils,
   Measurement,
-  ScaleBar
+  ScaleBar,
+  Home,
+  Locate
 ) {
   const cfg = window.SORA_CONFIG;
   
@@ -102,6 +107,7 @@ function clampNonNegative(v) {
       container: "widgetBookmarks"
     });
 
+    // --- Scalebar (metric)
     const scaleBar = new ScaleBar({
       view: view,
       unit: "metric"
@@ -110,6 +116,21 @@ function clampNonNegative(v) {
     view.ui.add(scaleBar, {
       position: "bottom-left"
     });
+
+    // --- Home (zoom to initial extent)
+    const home = new Home({ view: view });
+    view.ui.add(home, { position: "top-left" });
+
+    // --- Locate (GPS)
+    const locate = new Locate({
+      view: view,
+      useHeadingEnabled: false,
+      goToOverride: (view, options) => {
+        options.target.scale = 2000; // adjust if you want closer/farther
+        return view.goTo(options.target);
+      }
+    });
+    view.ui.add(locate, { position: "top-left" });
 
     // -------------------------------
     // MISSION LAYER + STATE
