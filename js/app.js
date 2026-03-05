@@ -108,7 +108,7 @@ function clampNonNegative(v) {
     });
 
     view.ui.add(scaleBar, {
-      position: "bottom-right"
+      position: "bottom-left"
     });
 
     // -------------------------------
