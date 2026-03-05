@@ -198,3 +198,16 @@ html, body {
 .swatch-cv  { background: #ffd400; }
 .swatch-grb { background: #00b050; }
 .swatch-rp  { background: #ff00ff; }
+
+/* Make the scalebar less visually heavy */
+.esri-scale-bar {
+  opacity: 0.8;            /* overall transparency */
+}
+
+/* Optional: soften the scalebar background if present */
+.esri-scale-bar__line,
+.esri-scale-bar__label {
+  background: rgba(255,255,255,0.6);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
