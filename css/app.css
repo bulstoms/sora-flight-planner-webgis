@@ -201,13 +201,12 @@ html, body {
 
 /* Make the scalebar less visually heavy */
 .esri-scale-bar {
-  opacity: 0.8;            /* overall transparency */
+  opacity: 0.6;            /* overall transparency */
 }
 
 /* Optional: soften the scalebar background if present */
-.esri-scale-bar__line,
-.esri-scale-bar__label {
-  background: rgba(255,255,255,0.0);
+.esri-scale-bar__line {
+  background: rgba(255,255,255,1.0);
   border-radius: 4px;
   padding: 2px 4px;
 }
