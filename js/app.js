@@ -12,7 +12,8 @@ require([
   "esri/geometry/geometryEngine",
   "esri/Graphic",
   "esri/geometry/support/webMercatorUtils",
-  "esri/widgets/Measurement"
+  "esri/widgets/Measurement",
+  "esri/widgets/ScaleBar"
 ], function (
   esriConfig,
   OAuthInfo,
@@ -27,7 +28,8 @@ require([
   geometryEngine,
   Graphic,
   webMercatorUtils,
-  Measurement
+  Measurement,
+  ScaleBar
 ) {
   const cfg = window.SORA_CONFIG;
   
@@ -98,6 +100,15 @@ function clampNonNegative(v) {
     new Bookmarks({
       view: view,
       container: "widgetBookmarks"
+    });
+
+    const scaleBar = new ScaleBar({
+      view: view,
+      unit: "metric"
+    });
+
+    view.ui.add(scaleBar, {
+      position: "bottom-right"
     });
 
     // -------------------------------
