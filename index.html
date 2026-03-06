@@ -149,19 +149,23 @@
             <input id="cvSk" type="number" value="1" step="0.1" style="width:100%; margin-bottom:6px;" />
           </div>
         </div>
-
         <!-- CV no-parachute block -->
         <div id="cvNoParaBlock">
-          <div style="display:flex; gap:6px;">
+          <div style="display:flex; gap:6px; align-items:flex-end;">
             <div style="flex:1;">
-              <label style="font-size:12px;">t<sub>R</sub> reaction time (s)</label>
+              <label style="font-size:12px; display:block; min-height:28px;">
+                t<sub>R</sub> reaction time (s)
+              </label>
               <input id="cvTrStop" type="number" value="3" step="0.01" style="width:100%; margin-bottom:6px;" />
             </div>
             <div style="flex:1;">
-              <label style="font-size:12px;">θ pitch angle (deg)</label>
+              <label style="font-size:12px; display:block; min-height:28px;">
+                θ pitch angle (deg)
+              </label>
               <input id="cvTheta" type="number" value="30" step="0.1" style="width:100%; margin-bottom:6px;" />
             </div>
           </div>
+          
           <div style="font-size:12px; opacity:0.75; margin-bottom:6px;">
             Stop-UA method: S<sub>CM</sub>=0.5·V0²/(g·tan(θ))
           </div>
