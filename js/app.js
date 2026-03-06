@@ -195,6 +195,7 @@ function clampNonNegative(v) {
       if (evt.state === "complete") {
         evt.graphic.symbol = aoiSymbol;
         missionGeom = evt.graphic.geometry;
+        sketchMission.cancel();
         sketchMission.visible = false;
         setMissionStatus("Mission area set.");
 
@@ -281,6 +282,8 @@ function clampNonNegative(v) {
         }));
 
         missionGeom = polyForView;
+        sketchMission.cancel();
+        sketchMission.visible = false;
         setMissionStatus("Mission area imported.");
 
         // Zoom to imported mission
@@ -660,6 +663,9 @@ function clampNonNegative(v) {
         setMissionStatus("Select a drone first.");
         return;
       }
+
+      sketchMission.cancel();
+      sketchMission.visible = false;
 
       const d = drones[droneKey];
 
