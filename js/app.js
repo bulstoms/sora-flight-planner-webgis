@@ -143,8 +143,18 @@ function clampNonNegative(v) {
     
     let missionGeom = null;
 
-    function setMissionStatus(msg) {
-      const el = document.getElementById("missionStatus");
+    function setAOIStatus(msg) {
+      const el = document.getElementById("aoiStatus");
+      if (el) el.textContent = msg || "";
+    }
+
+    function setBufferStatus(msg) {
+      const el = document.getElementById("bufferStatus");
+      if (el) el.textContent = msg || "";
+    }
+
+    function setRPStatus(msg) {
+      const el = document.getElementById("rpStatus");
       if (el) el.textContent = msg || "";
     }
 
@@ -189,7 +199,7 @@ function clampNonNegative(v) {
       missionLayer.removeAll();
       missionGeom = null;
       sketchMission.visible = true;
-      setMissionStatus("Drawing mission polygon… double-click to finish.");
+      setAOIStatus("Drawing mission polygon… double-click to finish.");
       sketchMission.create("polygon");
     };
 
@@ -211,7 +221,7 @@ function clampNonNegative(v) {
         sketchMission.cancel();
         sketchMission.visible = false;
 
-        setMissionStatus("Mission area set.");
+        setAOIStatus("Mission area set.");
         view.goTo(missionGeom, { padding: 40 });
       }
     });
@@ -223,7 +233,7 @@ function clampNonNegative(v) {
       labelLayer.removeAll();
       missionGeom = null;
       clearOutputs();
-      setMissionStatus("Mission cleared.");
+      setAOIStatus("Mission cleared.");
     };
     
     // -------------------------------
@@ -252,7 +262,7 @@ function clampNonNegative(v) {
         }
 
         if (!geom || !geom.type || !geom.coordinates) {
-          setMissionStatus("GeoJSON geometry missing.");
+          setAOIStatus("GeoJSON geometry missing.");
           return;
         }
 
@@ -271,7 +281,7 @@ function clampNonNegative(v) {
           // We'll use the first polygon for now (most QGIS exports only have one anyway).
           const firstPoly = geom.coordinates[0];
           if (!firstPoly) {
-            setMissionStatus("MultiPolygon has no coordinates.");
+            setAOIStatus("MultiPolygon has no coordinates.");
             return;
           }
           const rings = firstPoly.map(ring => ring.map(([x, y]) => [x, y]));
@@ -281,7 +291,7 @@ function clampNonNegative(v) {
             spatialReference: { wkid: 4326 }
           };
         } else {
-          setMissionStatus("GeoJSON must contain Polygon or MultiPolygon.");
+          setAOIStatus("GeoJSON must contain Polygon or MultiPolygon.");
           return;
         }   
 
@@ -298,7 +308,7 @@ function clampNonNegative(v) {
         missionGeom = polyForView;
         sketchMission.cancel();
         sketchMission.visible = false;
-        setMissionStatus("Mission area imported.");
+        setAOIStatus("Mission area imported.");
 
         // Zoom to imported mission
         const target = missionLayer.graphics.getItemAt(0);
@@ -308,7 +318,7 @@ function clampNonNegative(v) {
         
       } catch (e) {
         console.error(e);
-        setMissionStatus("Import failed. Check file is valid GeoJSON.");
+        setAOIStatus("Import failed. Check file is valid GeoJSON.");
       } finally {
         fileInput.value = ""; // allow re-importing same file
       }
@@ -375,13 +385,13 @@ function clampNonNegative(v) {
     function startPlaceRp() {
       if (placingRp) return;
       if (!droneSelect.value) {
-        setMissionStatus("Select a drone before placing remote pilots.");
+        setRPStatus("Select a drone before placing remote pilots.");
         return;
       }
 
       placingRp = true;
       document.getElementById("btnAddRP").textContent = "Stop placing Remote Pilot";
-      setMissionStatus("Click on the map to place a Remote Pilot point (RP).");
+      setRPStatus("Click on the map to place a Remote Pilot point (RP).");
 
       rpClickHandle = view.on("click", (evt) => {
         const d = drones[droneSelect.value];
@@ -415,7 +425,7 @@ function clampNonNegative(v) {
         rpClickHandle.remove();
         rpClickHandle = null;
       }
-      setMissionStatus("Remote pilot placing stopped.");
+      setRPStatus("Remote pilot placing stopped.");
     }
 
     // Buttons (these IDs must exist in HTML)
@@ -428,17 +438,17 @@ function clampNonNegative(v) {
     document.getElementById("btnRemoveLastRP").onclick = () => {
       const last = rpItems.pop();
       if (!last) {
-        setMissionStatus("No remote pilots to remove.");
+        setRPStatus("No remote pilots to remove.");
         return;
       }
       rpLayer.removeMany([last.vlosG, last.cgaG, last.pointG, last.labelG]);
-      setMissionStatus("Removed last remote pilot.");
+      setRPStatus("Removed last remote pilot.");
     };
 
     document.getElementById("btnClearAllRP").onclick = () => {
       rpItems.length = 0;
       rpLayer.removeAll();
-      setMissionStatus("Cleared all remote pilots.");
+      setRPStatus("Cleared all remote pilots.");
     };
     
     function clearBuffersKeepMission() {
@@ -630,7 +640,7 @@ function clampNonNegative(v) {
       const key = droneSelect.value;
       if (key) populateDefaults(key);
 
-      setMissionStatus("Reset done. AOI kept. Buffers/labels cleared.");
+      setBufferStatus("Reset done. AOI kept. Buffers/labels cleared.");
     };  
 
     // ----- CV formulas (from SORA) -----
@@ -670,13 +680,13 @@ function clampNonNegative(v) {
     // Calculate buffers
     document.getElementById("btnCalcBuffers").onclick = () => {
       if (!missionGeom) {
-        setMissionStatus("No mission area. Draw or import a mission first.");
+        setBufferStatus("No mission area. Draw or import a mission first.");
         return;
       }
 
       const droneKey = droneSelect.value;
       if (!droneKey) {
-        setMissionStatus("Select a drone first.");
+        setBufferStatus("Select a drone first.");
         return;
       }
 
@@ -748,7 +758,7 @@ function clampNonNegative(v) {
       addLabel(`CV: ${cvMeters.toFixed(1)} m\n${cvHa.toFixed(2)} ha`, cvGeom, "tr");
       addLabel(`GRB: ${grbMeters.toFixed(1)} m\n${grbHa.toFixed(2)} ha`, grbGeom, "br");
       
-      setMissionStatus(`Buffers generated. CV=${cvMeters.toFixed(1)}m | GRB=${grbMeters.toFixed(1)}m`);
+      setBufferStatus(`Buffers generated. CV=${cvMeters.toFixed(1)}m | GRB=${grbMeters.toFixed(1)}m`);
 
       // Zoom to GRB
       view.goTo(grbGeom.extent.expand(1.15), { padding: 60 });
