@@ -170,6 +170,7 @@ function clampNonNegative(v) {
       layer: missionLayer,
       creationMode: "single",
       availableCreateTools: ["polygon"],
+      updateOnGraphicClick: false,
       visibleElements: {
         selectionTools: false,
         settingsMenu: false,
