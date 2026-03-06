@@ -304,6 +304,123 @@ function clampNonNegative(v) {
     const labelLayer = new GraphicsLayer({ title: "SORA labels" });
     view.map.add(labelLayer);
 
+    // -------------------------------
+    // REMOTE PILOTS (RP + CGA + VLOS)
+    // -------------------------------
+    const rpLayer = new GraphicsLayer({ title: "Remote pilots (RP)" });
+    view.map.add(rpLayer);
+
+    // Keep a list so we can remove last / clear all
+    const rpItems = []; // each item: { pointG, cgaG, vlosG, labelG }
+    let placingRp = false;
+    let rpClickHandle = null;
+
+    // Symbols
+    const rpPointSymbol = {
+      type: "simple-marker",
+      style: "circle",
+      size: 10,
+      color: [255, 0, 255, 0.9],
+      outline: { color: [255, 255, 255, 1], width: 1.5 }
+    };
+
+    const cgaSymbol = {
+      type: "simple-fill",
+      color: [255, 0, 255, 0.10], // magenta
+      outline: { color: [200, 0, 200, 0.95], width: 2 }
+    };
+
+    const vlosSymbol = {
+      type: "simple-fill",
+      color: [0, 180, 255, 0.06], // cyan fill
+      outline: { color: [0, 140, 200, 0.95], width: 2, style: "dash" }
+    };
+
+    // Helper: create a text label graphic at a point
+    function makeRpLabel(point, text) {
+      return new Graphic({
+        geometry: point,
+        symbol: {
+          type: "text",
+          text,
+          color: "black",
+          haloColor: "white",
+          haloSize: 2,
+          font: { size: 12, family: "Arial", weight: "bold" },
+          xoffset: 12,
+          yoffset: 12
+        }
+      });
+    }
+
+    // Start placing mode
+    function startPlaceRp() {
+      if (placingRp) return;
+      if (!droneSelect.value) {
+        setMissionStatus("Select a drone before placing remote pilots.");
+        return;
+      }
+
+      placingRp = true;
+      setMissionStatus("Click on the map to place a Remote Pilot point (RP). Press 'Close' by clicking Add RP again or use other tools.");
+
+      rpClickHandle = view.on("click", (evt) => {
+        const d = drones[droneSelect.value];
+        if (!d) return;
+
+        const pt = evt.mapPoint;
+        const rpIndex = rpItems.length + 1;
+
+        // CGA + VLOS buffers around RP
+        const cgaGeom = geometryEngine.geodesicBuffer(pt, d.cgaRadius, "meters");
+        const vlosGeom = geometryEngine.geodesicBuffer(pt, d.vlosRadius, "meters");
+
+        const pointG = new Graphic({ geometry: pt, symbol: rpPointSymbol, attributes: { rp_id: rpIndex } });
+        const cgaG = new Graphic({ geometry: cgaGeom, symbol: cgaSymbol, attributes: { rp_id: rpIndex, type: "CGA", radius_m: d.cgaRadius } });
+        const vlosG = new Graphic({ geometry: vlosGeom, symbol: vlosSymbol, attributes: { rp_id: rpIndex, type: "VLOS", radius_m: d.vlosRadius } });
+        const labelG = makeRpLabel(pt, `RP${rpIndex}`);
+
+        rpLayer.addMany([vlosG, cgaG, pointG, labelG]);
+        rpItems.push({ pointG, cgaG, vlosG, labelG });
+
+        // zoom gently to include new vlos (optional)
+        view.goTo(vlosGeom.extent.expand(1.1), { padding: 60 });
+      });
+    }
+
+    // Stop placing mode
+    function stopPlaceRp() {
+      placingRp = false;
+      if (rpClickHandle) {
+        rpClickHandle.remove();
+        rpClickHandle = null;
+      }
+      setMissionStatus("Remote pilot placing stopped.");
+    }
+
+    // Buttons (these IDs must exist in HTML)
+    document.getElementById("btnAddRP").onclick = () => {
+      // toggle placing mode
+      if (placingRp) stopPlaceRp();
+      else startPlaceRp();
+    };
+
+    document.getElementById("btnRemoveLastRP").onclick = () => {
+      const last = rpItems.pop();
+      if (!last) {
+        setMissionStatus("No remote pilots to remove.");
+        return;
+      }
+      rpLayer.removeMany([last.vlosG, last.cgaG, last.pointG, last.labelG]);
+      setMissionStatus("Removed last remote pilot.");
+    };
+
+    document.getElementById("btnClearAllRP").onclick = () => {
+      rpItems.length = 0;
+      rpLayer.removeAll();
+      setMissionStatus("Cleared all remote pilots.");
+    };
+    
     function clearBuffersKeepMission() {
       // Keep the mission polygon if it exists; rebuild all buffers/labels
       const missionGraphic = missionGeom
@@ -380,6 +497,8 @@ function clampNonNegative(v) {
         wingspan: 1.4,
         mtow: 9.2,
         parachuteMinHeight: 39,
+        cgaRadius: 39,
+        vlosRadius: 497,
         defaultGRB: 245,
         grbRef: "as defined in PRS Kronos M350 User's Manual and Instructions, page 101",
         grbCalcDefaults: { V: 17, Vwind: 9.34, HT: 120, Sp: 5.1, LH: 1.0, LS: 1.41 },
@@ -390,6 +509,8 @@ function clampNonNegative(v) {
         wingspan: 1.84,
         mtow: 12.9,
         parachuteMinHeight: 47,
+        cgaRadius: 47,
+        vlosRadius: 622,
         defaultGRB: 179,
         grbRef: "as defined in Hexadrone Containment Flight Manual for Tundra 2.1, page 16",
         grbCalcDefaults: { V: 17, Vwind: 7.2, HT: 120, Sp: 6.9, LH: 1.0, LS: 1.41 },
