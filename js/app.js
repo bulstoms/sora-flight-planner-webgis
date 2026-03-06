@@ -380,7 +380,8 @@ function clampNonNegative(v) {
       }
 
       placingRp = true;
-      setMissionStatus("Click on the map to place a Remote Pilot point (RP). Press 'Close' by clicking Add RP again or use other tools.");
+      document.getElementById("btnAddRP").textContent = "Stop placing Remote Pilot";
+      setMissionStatus("Click on the map to place a Remote Pilot point (RP).");
 
       rpClickHandle = view.on("click", (evt) => {
         const d = drones[droneSelect.value];
@@ -409,6 +410,7 @@ function clampNonNegative(v) {
     // Stop placing mode
     function stopPlaceRp() {
       placingRp = false;
+      document.getElementById("btnAddRP").textContent = "Stop placing Remote Pilot";
       if (rpClickHandle) {
         rpClickHandle.remove();
         rpClickHandle = null;
