@@ -194,10 +194,11 @@ html, body {
   border: 1px solid rgba(0,0,0,0.15);
 }
 
-.swatch-aoi { background: #ff0000; }
-.swatch-cv  { background: #ffd400; }
-.swatch-grb { background: #00b050; }
-.swatch-rp  { background: #ff00ff; }
+.swatch-aoi { background: #00b050; }   /* AOI green */
+.swatch-cv  { background: #ffd400; }   /* CV yellow */
+.swatch-grb { background: #ff0000; }   /* GRB red */
+.swatch-rp  { background: #ff00ff; }   /* CGA magenta */
+.swatch-vlos { background: #00b4ff; }  /* VLOS cyan */
 
 /* Make the scalebar less visually heavy */
 .esri-scale-bar {
