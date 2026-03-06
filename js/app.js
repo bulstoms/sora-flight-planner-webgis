@@ -135,9 +135,12 @@ function clampNonNegative(v) {
     // -------------------------------
     // MISSION LAYER + STATE
     // -------------------------------
+    const drawLayer = new GraphicsLayer({ title: "Mission drawing layer" });
+    view.map.add(drawLayer);
+
     const missionLayer = new GraphicsLayer({ title: "Mission planning" });
     view.map.add(missionLayer);
-
+    
     let missionGeom = null;
 
     function setMissionStatus(msg) {
@@ -167,7 +170,7 @@ function clampNonNegative(v) {
     // Sketch for drawing mission polygon
     const sketchMission = new Sketch({
       view: view,
-      layer: missionLayer,
+      layer: drawLayer,
       creationMode: "single",
       availableCreateTools: ["polygon"],
       updateOnGraphicClick: false,
@@ -193,18 +196,29 @@ function clampNonNegative(v) {
     // Sketch complete
     sketchMission.on("create", (evt) => {
       if (evt.state === "complete") {
-        evt.graphic.symbol = aoiSymbol;
+
         missionGeom = evt.graphic.geometry;
+
+        drawLayer.removeAll();
+
+        missionLayer.add(
+          new Graphic({
+            geometry: missionGeom,
+            symbol: aoiSymbol
+          })
+        );
+
         sketchMission.cancel();
         sketchMission.visible = false;
-        setMissionStatus("Mission area set.");
 
+        setMissionStatus("Mission area set.");
         view.goTo(missionGeom, { padding: 40 });
       }
     });
-
+    
     // Button: Clear mission
     document.getElementById("btnClearMission").onclick = () => {
+      drawLayer.removeAll();
       missionLayer.removeAll();
       labelLayer.removeAll();
       missionGeom = null;
