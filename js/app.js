@@ -607,13 +607,12 @@ function clampNonNegative(v) {
       updateGrbT();
 
       // Drone info panel
-      droneInfo.innerHTML = `
+     droneInfo.innerHTML = `
         <b>${d.name}</b><br>
         Wingspan: ${d.wingspan} m<br>
         MTOW: ${d.mtow} kg<br>
-        Parachute min height: ${d.parachuteMinHeight} m AGL<br><br>
-        <b>Default GRB:</b> ${d.defaultGRB} m<br>
-        <span style="opacity:0.8;">${d.grbRef}</span>
+        Parachute min height: ${d.parachuteMinHeight} m AGL<br>
+        VLOS max: ${d.vlosRadius} m
       `;
 
       if (grbDefaultsEl) {
