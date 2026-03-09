@@ -180,6 +180,10 @@ function getMissionName() {
       const el = document.getElementById("exportStatus");
       if (el) el.textContent = msg || "";
     }
+    function setReportStatus(msg) {
+      const el = document.getElementById("reportStatus");
+      if (el) el.textContent = msg || "";
+    }
     
     // Requested colors (AOI/CV/GRB)
     const aoiSymbol = {
@@ -623,7 +627,10 @@ function getMissionName() {
       const sqm = Math.abs(geometryEngine.geodesicArea(geom, "square-meters"));
       return sqm / 10000;
     }
-
+    function getRemotePilotCount() {
+      return rpItems.length;
+    }
+    
     function addLabel(text, geom, where = "center") {
       const ex = geom?.extent;
       if (!ex) return;
@@ -1119,6 +1126,251 @@ function getMissionName() {
       );
 
       setExportStatus(`Exported ${features.length} features to KML.`);
+    };
+
+    document.getElementById("btnCreateReport").onclick = async () => {
+
+      const missionName = getMissionName();
+      if (!missionName) {
+        setReportStatus("Enter a mission name before creating a report.");
+        return;
+      }
+
+      const droneKey = droneSelect.value;
+      const droneName = droneKey && drones[droneKey] ? drones[droneKey].name : "Not selected";
+
+      if (!missionGeom) {
+        setReportStatus("Draw or import a mission area before creating a report.");
+        return;
+      }
+
+      try {
+
+        setReportStatus("Creating report...");
+
+        const screenshot = await view.takeScreenshot({
+          format: "png",
+          quality: 1,
+          width: 1400,
+          height: 900
+        });
+
+        const aoiHa = missionGeom ? haFromGeom(missionGeom).toFixed(2) : "—";
+        const cvHa = lastCvGeom ? haFromGeom(lastCvGeom).toFixed(2) : "—";
+        const grbHa = lastGrbGeom ? haFromGeom(lastGrbGeom).toFixed(2) : "—";
+
+        const cvM = lastCvMeters != null ? lastCvMeters.toFixed(1) : "—";
+        const grbM = lastGrbMeters != null ? lastGrbMeters.toFixed(1) : "—";
+
+        const plannedSpeed = clampNonNegative(document.getElementById("inputV0")?.value);
+        const plannedAltitude = clampNonNegative(document.getElementById("inputHT")?.value);
+
+        const cvMethod = chkCvParachute.checked ? "Parachute contingency method" : "Stop-UA method";
+        const grbMethod = chkCustomGRB.checked ? "Custom GRB (MOC Light-UAS.2511-01)" : "Default drone GRB";
+
+        const rpCount = rpItems.length;
+
+        let rpSummaryRows = "";
+
+        if (rpItems.length > 0) {
+
+          rpItems.forEach((item, idx) => {
+
+            const rpId = `RP${idx + 1}`;
+            const d = droneKey && drones[droneKey] ? drones[droneKey] : null;
+
+            rpSummaryRows += `
+              <tr>
+                <td>${rpId}</td>
+                <td>${d ? d.cgaRadius : "—"} m</td>
+                <td>${d ? d.vlosRadius : "—"} m</td>
+              </tr>
+            `;
+
+          });
+
+        } else {
+
+          rpSummaryRows = `
+            <tr>
+              <td colspan="3">No remote pilots placed</td>
+            </tr>
+          `;
+
+        }
+
+        const reportHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <title>Mission report</title>
+
+    <style>
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 28px;
+      color: #222;
+    }
+
+    .header {
+      display:flex;
+      align-items:center;
+      gap:16px;
+      border-bottom:2px solid #e5e5e5;
+      padding-bottom:12px;
+      margin-bottom:20px;
+    }
+
+    .logo {
+      height:42px;
+    }
+
+    h2 {
+      margin-top:24px;
+      margin-bottom:10px;
+      font-size:18px;
+      border-bottom:1px solid #ddd;
+      padding-bottom:4px;
+    }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-bottom:14px;
+      font-size:13px;
+    }
+
+    th, td {
+      border:1px solid #ddd;
+      padding:8px;
+      text-align:left;
+    }
+
+    th {
+      background:#f5f5f5;
+      width:28%;
+    }
+
+    .map-image {
+      width:100%;
+      border:1px solid #ddd;
+      border-radius:8px;
+    }
+
+    .legend {
+      display:flex;
+      gap:16px;
+      flex-wrap:wrap;
+      margin:10px 0 18px;
+      font-size:12px;
+    }
+
+    .legend-item {
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .swatch {
+      width:14px;
+      height:10px;
+      border-radius:3px;
+      border:1px solid rgba(0,0,0,0.2);
+    }
+
+    .aoi { background:#00b050; }
+    .cv { background:#ffd400; }
+    .grb { background:#ff0000; }
+    .cga { background:#ff00ff; }
+    .vlos { background:#00b4ff; }
+
+    </style>
+
+    </head>
+
+    <body>
+
+    <div class="header">
+    <img class="logo" src="./assets/spectrofly-logo.png">
+    <div>
+    <h1>Mission report</h1>
+    <div>${missionName}</div>
+    </div>
+    </div>
+
+    <h2>Mission summary</h2>
+
+    <table>
+    <tr><th>Mission name</th><td>${missionName}</td></tr>
+    <tr><th>Operation ID</th><td>${currentOperationId || "—"}</td></tr>
+    <tr><th>Date</th><td>${new Date().toLocaleString()}</td></tr>
+    <tr><th>Drone</th><td>${droneName}</td></tr>
+    <tr><th>Planned speed</th><td>${plannedSpeed || "—"} m/s</td></tr>
+    <tr><th>Planned altitude</th><td>${plannedAltitude || "—"} m</td></tr>
+    <tr><th>CV method</th><td>${cvMethod}</td></tr>
+    <tr><th>GRB method</th><td>${grbMethod}</td></tr>
+    </table>
+
+    <h2>Geometry summary</h2>
+
+    <table>
+    <tr><th>AOI area</th><td>${aoiHa} ha</td></tr>
+    <tr><th>CV area</th><td>${cvHa} ha</td></tr>
+    <tr><th>GRB area</th><td>${grbHa} ha</td></tr>
+    <tr><th>CV distance</th><td>${cvM} m</td></tr>
+    <tr><th>GRB distance</th><td>${grbM} m</td></tr>
+    <tr><th>Remote pilots</th><td>${rpCount}</td></tr>
+    </table>
+
+    <h2>Map overview</h2>
+
+    <div class="legend">
+    <div class="legend-item"><span class="swatch aoi"></span> AOI</div>
+    <div class="legend-item"><span class="swatch cv"></span> CV</div>
+    <div class="legend-item"><span class="swatch grb"></span> GRB</div>
+    <div class="legend-item"><span class="swatch cga"></span> CGA</div>
+    <div class="legend-item"><span class="swatch vlos"></span> VLOS</div>
+    </div>
+
+    <img class="map-image" src="${screenshot.dataUrl}">
+
+    <h2>Remote pilot summary</h2>
+
+    <table>
+    <tr>
+    <th>Remote pilot</th>
+    <th>CGA radius</th>
+    <th>VLOS radius</th>
+    </tr>
+    ${rpSummaryRows}
+    </table>
+
+    </body>
+    </html>
+    `;
+
+        const reportWindow = window.open("", "_blank");
+
+        if (!reportWindow) {
+          setReportStatus("Popup blocked. Allow popups to open the report.");
+          return;
+        }
+
+        reportWindow.document.open();
+        reportWindow.document.write(reportHtml);
+        reportWindow.document.close();
+
+        setReportStatus("Report created. Use Print → Save as PDF.");
+
+      } catch (err) {
+
+        console.error(err);
+        setReportStatus("Failed to create report.");
+
+      }
+
     };
     
     // ----- CV formulas (from SORA) -----
