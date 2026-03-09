@@ -173,16 +173,22 @@
 
         <!-- CV parachute block -->
         <div id="cvParaBlock" style="display:none;">
-          <div style="display:flex; gap:6px;">
+          <div style="display:flex; gap:6px; align-items:flex-end;">
             <div style="flex:1;">
-              <label style="font-size:12px;">T<sub>R</sub> response time (s)</label>
+              <label style="font-size:12px; display:block; min-height:28px;">
+                T<sub>R</sub> response time (s)
+              </label>
               <input id="cvTR" type="number" value="1.41" step="0.01" style="width:100%; margin-bottom:6px;" />
             </div>
+
             <div style="flex:1;">
-              <label style="font-size:12px;">T<sub>P</sub> parachute open time (s)</label>
+              <label style="font-size:12px; display:block; min-height:28px;">
+                T<sub>P</sub> parachute open time (s)
+              </label>
               <input id="cvTP" type="number" value="1.32" step="0.01" style="width:100%; margin-bottom:6px;" />
             </div>
           </div>
+          
           <div style="font-size:12px; opacity:0.75; margin-bottom:6px;">
             Parachute method: S<sub>CV</sub>=S<sub>GNSS</sub>+S<sub>POS</sub>+S<sub>K</sub>+V0·T<sub>R</sub>+V0·T<sub>P</sub>
           </div>
