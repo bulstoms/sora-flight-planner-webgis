@@ -8,6 +8,7 @@ require([
   "esri/widgets/BasemapGallery",
   "esri/widgets/Bookmarks",
   "esri/layers/GraphicsLayer",
+  "esri/layers/FeatureLayer",
   "esri/widgets/Sketch",
   "esri/geometry/geometryEngine",
   "esri/Graphic",
@@ -27,6 +28,7 @@ require([
   BasemapGallery,
   Bookmarks,
   GraphicsLayer,
+  FeatureLayer,
   Sketch,
   geometryEngine,
   Graphic,
@@ -45,6 +47,14 @@ function clampNonNegative(v) {
   const n = Number(s);
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, n);
+}
+  
+function getOperationId() {
+  if (!currentOperationId) {
+    const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+    currentOperationId = `OP_${stamp}`;
+  }
+  return currentOperationId;
 }
 
   // Tell ArcGIS which portal we are using
@@ -142,7 +152,12 @@ function clampNonNegative(v) {
     view.map.add(missionLayer);
     
     let missionGeom = null;
-
+    let lastCvGeom = null;
+    let lastGrbGeom = null;
+    let lastCvMeters = null;
+    let lastGrbMeters = null;
+    let currentOperationId = null;
+    
     function setAOIStatus(msg) {
       const el = document.getElementById("aoiStatus");
       if (el) el.textContent = msg || "";
@@ -232,6 +247,11 @@ function clampNonNegative(v) {
       missionLayer.removeAll();
       labelLayer.removeAll();
       missionGeom = null;
+      lastCvGeom = null;
+      lastGrbGeom = null;
+      lastCvMeters = null;
+      lastGrbMeters = null;
+      currentOperationId = null;
       clearOutputs();
       setAOIStatus("Mission cleared.");
     };
@@ -337,6 +357,15 @@ function clampNonNegative(v) {
     // -------------------------------
     const rpLayer = new GraphicsLayer({ title: "Remote pilots (RP)" });
     view.map.add(rpLayer);
+
+    // Hosted Feature Layers for saving to ArcGIS Online
+    const buffersFeatureLayer = new FeatureLayer({
+      url: cfg.buffersLayerUrl
+    });
+
+    const remotePilotsFeatureLayer = new FeatureLayer({
+      url: cfg.remotePilotsLayerUrl
+    });
 
     // Keep a list so we can remove last / clear all
     const rpItems = []; // each item: { pointG, cgaG, vlosG, labelG }
@@ -449,6 +478,94 @@ function clampNonNegative(v) {
       rpItems.length = 0;
       rpLayer.removeAll();
       setRPStatus("Cleared all remote pilots.");
+    };
+
+    document.getElementById("btnSaveRP").onclick = async () => {
+      const droneKey = droneSelect.value;
+      if (!droneKey) {
+        setRPStatus("Select a drone first.");
+        return;
+      }
+
+      if (rpItems.length === 0) {
+        setRPStatus("No remote pilots to save.");
+        return;
+      }
+
+      const d = drones[droneKey];
+      const operationId = getOperationId();
+      const now = Date.now();
+
+      // 1) Save RP points to point layer
+      const rpPointFeatures = rpItems.map((item, idx) => ({
+        geometry: item.pointG.geometry,
+        attributes: {
+          operation_id: operationId,
+          drone_model: d.name,
+          vlos_m: d.vlosRadius,
+          cga_m: d.cgaRadius,
+          notes: `RP${idx + 1}`,
+          created_at: now
+        }
+      }));
+
+      // 2) Save CGA + VLOS polygons to polygon layer
+      const rpPolygonFeatures = [];
+      rpItems.forEach((item, idx) => {
+        rpPolygonFeatures.push({
+          geometry: item.cgaG.geometry,
+          attributes: {
+            operation_id: operationId,
+            drone_model: d.name,
+            feature_type: "CGA",
+            scv_m: null,
+            grb_m: null,
+            vlos_m: d.vlosRadius,
+            cga_m: d.cgaRadius,
+            planned_speed_ms: null,
+            planned_altitude_m: null,
+            parachute_min_agl_m: d.parachuteMinHeight,
+            notes: `RP${idx + 1}`,
+            created_at: now
+          }
+        });
+
+        rpPolygonFeatures.push({
+          geometry: item.vlosG.geometry,
+          attributes: {
+            operation_id: operationId,
+            drone_model: d.name,
+            feature_type: "VLOS",
+            scv_m: null,
+            grb_m: null,
+            vlos_m: d.vlosRadius,
+            cga_m: d.cgaRadius,
+            planned_speed_ms: null,
+            planned_altitude_m: null,
+            parachute_min_agl_m: d.parachuteMinHeight,
+            notes: `RP${idx + 1}`,
+            created_at: now
+          }
+        });
+      });
+
+      try {
+        const pointResult = await remotePilotsFeatureLayer.applyEdits({
+          addFeatures: rpPointFeatures
+        });
+
+        const polyResult = await buffersFeatureLayer.applyEdits({
+          addFeatures: rpPolygonFeatures
+        });
+
+        const addedPts = pointResult.addFeatureResults?.filter(r => !r.error).length || 0;
+        const addedPolys = polyResult.addFeatureResults?.filter(r => !r.error).length || 0;
+
+        setRPStatus(`Saved ${addedPts} RP points and ${addedPolys} RP polygons to ArcGIS Online.`);
+      } catch (err) {
+        console.error(err);
+        setRPStatus("Saving remote pilots failed. Check permissions and layer schema.");
+      }
     };
     
     function clearBuffersKeepMission() {
@@ -642,6 +759,94 @@ function clampNonNegative(v) {
       setBufferStatus("Reset done. AOI kept. Buffers/labels cleared.");
     };  
 
+    document.getElementById("btnSaveBuffers").onclick = async () => {
+      if (!missionGeom || !lastCvGeom || !lastGrbGeom) {
+        setBufferStatus("Calculate buffers before saving.");
+        return;
+      }
+
+      const droneKey = droneSelect.value;
+      if (!droneKey) {
+        setBufferStatus("Select a drone first.");
+        return;
+      }
+
+      const d = drones[droneKey];
+      const operationId = getOperationId();
+      const v0 = clampNonNegative(document.getElementById("inputV0").value);
+      const HT = clampNonNegative(document.getElementById("inputHT").value);
+      const now = Date.now();
+
+      const cvMethod = chkCvParachute.checked ? "parachute" : "stop_ua";
+      const grbMethod = chkCustomGRB.checked ? "custom_moc" : "default";
+
+      const features = [
+        {
+          geometry: missionGeom,
+          attributes: {
+            operation_id: operationId,
+            drone_model: d.name,
+            feature_type: "AOI",
+            scv_m: lastCvMeters,
+            grb_m: lastGrbMeters,
+            vlos_m: null,
+            cga_m: null,
+            planned_speed_ms: v0,
+            planned_altitude_m: HT,
+            parachute_min_agl_m: d.parachuteMinHeight,
+            notes: `cv_method=${cvMethod}; grb_method=${grbMethod}`,
+            created_at: now
+          }
+        },
+        {
+          geometry: lastCvGeom,
+          attributes: {
+            operation_id: operationId,
+            drone_model: d.name,
+            feature_type: "CV",
+            scv_m: lastCvMeters,
+            grb_m: lastGrbMeters,
+            vlos_m: null,
+            cga_m: null,
+            planned_speed_ms: v0,
+            planned_altitude_m: HT,
+            parachute_min_agl_m: d.parachuteMinHeight,
+            notes: `cv_method=${cvMethod}; grb_method=${grbMethod}`,
+            created_at: now
+          }
+        },
+        {
+          geometry: lastGrbGeom,
+          attributes: {
+            operation_id: operationId,
+            drone_model: d.name,
+            feature_type: "GRB",
+            scv_m: lastCvMeters,
+            grb_m: lastGrbMeters,
+            vlos_m: null,
+            cga_m: null,
+            planned_speed_ms: v0,
+            planned_altitude_m: HT,
+            parachute_min_agl_m: d.parachuteMinHeight,
+            notes: `cv_method=${cvMethod}; grb_method=${grbMethod}`,
+            created_at: now
+          }
+        }
+      ];
+
+      try {
+        const result = await buffersFeatureLayer.applyEdits({
+          addFeatures: features
+        });
+
+        const added = result.addFeatureResults?.filter(r => !r.error).length || 0;
+        setBufferStatus(`Saved ${added} polygon features to ArcGIS Online.`);
+      } catch (err) {
+        console.error(err);
+        setBufferStatus("Saving buffers failed. Check permissions and layer schema.");
+      }
+    };
+    
     // ----- CV formulas (from SORA) -----
     function degToRad(deg) {
       return (deg * Math.PI) / 180;
@@ -737,6 +942,12 @@ function clampNonNegative(v) {
 
       const cvGeom = geometryEngine.geodesicBuffer(missionGeom, cvMeters, "meters");
       const grbGeom = geometryEngine.geodesicBuffer(cvGeom, grbMeters, "meters");
+
+      lastCvGeom = cvGeom;
+      lastGrbGeom = grbGeom;
+      lastCvMeters = cvMeters;
+      lastGrbMeters = grbMeters;
+      getOperationId();
 
       missionLayer.add(new Graphic({ geometry: cvGeom, symbol: cvSymbol }));
       missionLayer.add(new Graphic({ geometry: grbGeom, symbol: grbSymbol }));
