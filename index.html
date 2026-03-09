@@ -311,6 +311,57 @@
           Save Remote Pilots + CGA + VLOS to ArcGIS Online
         </button>
         
+
+        <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:12px 0;" />
+
+        <div style="font-weight:600;">Export</div>
+
+        <div style="font-size:12px; opacity:0.75; margin-bottom:8px;">
+          Select which layers to export. Mission name is required.
+        </div>
+
+        <label style="font-size:12px; display:block; margin-bottom:4px;">
+          <input type="checkbox" id="expAOI" checked />
+          AOI
+        </label>
+
+        <label style="font-size:12px; display:block; margin-bottom:4px;">
+          <input type="checkbox" id="expCV" checked />
+          CV
+        </label>
+
+        <label style="font-size:12px; display:block; margin-bottom:4px;">
+          <input type="checkbox" id="expGRB" checked />
+          GRB
+        </label>
+
+        <label style="font-size:12px; display:block; margin-bottom:4px;">
+          <input type="checkbox" id="expRP" checked />
+          Remote Pilot points
+        </label>
+
+        <label style="font-size:12px; display:block; margin-bottom:4px;">
+          <input type="checkbox" id="expCGA" checked />
+          CGA
+        </label>
+
+        <label style="font-size:12px; display:block; margin-bottom:8px;">
+          <input type="checkbox" id="expVLOS" checked />
+          VLOS
+        </label>
+
+        <button id="btnExportGeoJSON" class="measure-btn">Export GeoJSON</button>
+        <button id="btnExportKML" class="measure-btn">Export KML</button>
+
+        <div id="exportStatus"
+             style="
+               margin-top:6px;
+               padding:6px 8px;
+               background:rgba(0,0,0,0.04);
+               border-radius:6px;
+               font-size:12px;
+               min-height:18px;">
+        </div>  
       </div>
     </details>  
 
