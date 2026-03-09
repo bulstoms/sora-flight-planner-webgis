@@ -48,6 +48,10 @@ function clampNonNegative(v) {
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, n);
 }
+function getMissionName() {
+  const el = document.getElementById("missionName");
+  return el ? el.value.trim() : "";
+}
 
   // Tell ArcGIS which portal we are using
   esriConfig.portalUrl = cfg.portalUrl;
@@ -480,6 +484,12 @@ function clampNonNegative(v) {
     };
 
     document.getElementById("btnSaveRP").onclick = async () => {
+      const missionName = getMissionName();
+      if (!missionName) {
+        setRPStatus("Enter a mission name before saving to ArcGIS Online.");
+        return;
+      }
+
       const droneKey = droneSelect.value;
       if (!droneKey) {
         setRPStatus("Select a drone first.");
@@ -500,6 +510,7 @@ function clampNonNegative(v) {
         geometry: item.pointG.geometry,
         attributes: {
           operation_id: operationId,
+          mission_name: missionName,
           drone_model: d.name,
           vlos_m: d.vlosRadius,
           cga_m: d.cgaRadius,
@@ -515,6 +526,7 @@ function clampNonNegative(v) {
           geometry: item.cgaG.geometry,
           attributes: {
             operation_id: operationId,
+            mission_name: missionName,
             drone_model: d.name,
             feature_type: "CGA",
             scv_m: null,
@@ -533,6 +545,7 @@ function clampNonNegative(v) {
           geometry: item.vlosG.geometry,
           attributes: {
             operation_id: operationId,
+            mission_name: missionName,
             drone_model: d.name,
             feature_type: "VLOS",
             scv_m: null,
@@ -764,6 +777,12 @@ function clampNonNegative(v) {
         return;
       }
 
+      const missionName = getMissionName();
+      if (!missionName) {
+        setBufferStatus("Enter a mission name before saving to ArcGIS Online.");
+        return;
+      }
+
       const droneKey = droneSelect.value;
       if (!droneKey) {
         setBufferStatus("Select a drone first.");
@@ -784,6 +803,7 @@ function clampNonNegative(v) {
           geometry: missionGeom,
           attributes: {
             operation_id: operationId,
+            mission_name: missionName,
             drone_model: d.name,
             feature_type: "AOI",
             scv_m: lastCvMeters,
@@ -801,6 +821,7 @@ function clampNonNegative(v) {
           geometry: lastCvGeom,
           attributes: {
             operation_id: operationId,
+            mission_name: missionName,
             drone_model: d.name,
             feature_type: "CV",
             scv_m: lastCvMeters,
@@ -818,6 +839,7 @@ function clampNonNegative(v) {
           geometry: lastGrbGeom,
           attributes: {
             operation_id: operationId,
+            mission_name: missionName,
             drone_model: d.name,
             feature_type: "GRB",
             scv_m: lastCvMeters,
