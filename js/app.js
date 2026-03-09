@@ -420,7 +420,7 @@ function clampNonNegative(v) {
     // Stop placing mode
     function stopPlaceRp() {
       placingRp = false;
-      document.getElementById("btnAddRP").textContent = "Stop placing Remote Pilot";
+      document.getElementById("btnAddRP").textContent = "Add Remote Pilot";
       if (rpClickHandle) {
         rpClickHandle.remove();
         rpClickHandle = null;
