@@ -48,14 +48,6 @@ function clampNonNegative(v) {
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, n);
 }
-  
-function getOperationId() {
-  if (!currentOperationId) {
-    const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
-    currentOperationId = `OP_${stamp}`;
-  }
-  return currentOperationId;
-}
 
   // Tell ArcGIS which portal we are using
   esriConfig.portalUrl = cfg.portalUrl;
@@ -157,6 +149,13 @@ function getOperationId() {
     let lastCvMeters = null;
     let lastGrbMeters = null;
     let currentOperationId = null;
+    function getOperationId() {
+      if (!currentOperationId) {
+        const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+        currentOperationId = `OP_${stamp}`;
+      }
+      return currentOperationId;
+    } 
     
     function setAOIStatus(msg) {
       const el = document.getElementById("aoiStatus");
