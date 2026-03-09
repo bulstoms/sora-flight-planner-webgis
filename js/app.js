@@ -176,6 +176,11 @@ function getMissionName() {
       if (el) el.textContent = msg || "";
     }
 
+    function setExportStatus(msg) {
+      const el = document.getElementById("exportStatus");
+      if (el) el.textContent = msg || "";
+    }
+    
     // Requested colors (AOI/CV/GRB)
     const aoiSymbol = {
       type: "simple-fill",
@@ -867,6 +872,55 @@ function getMissionName() {
         setBufferStatus("Saving buffers failed. Check permissions and layer schema.");
       }
     };
+
+    document.getElementById("btnExportGeoJSON").onclick = () => {
+      const features = collectExportFeatures();
+      if (!features) return;
+
+      if (features.length === 0) {
+        setExportStatus("No selected features available to export.");
+        return;
+      }
+
+      const missionName = getMissionName();
+      const safeName = missionName.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      const geojson = {
+        type: "FeatureCollection",
+        features
+      };
+
+      downloadTextFile(
+        `${safeName}.geojson`,
+        JSON.stringify(geojson, null, 2),
+        "application/geo+json"
+      );
+
+      setExportStatus(`Exported ${features.length} features to GeoJSON.`);
+    };
+
+    document.getElementById("btnExportKML").onclick = () => {
+      const features = collectExportFeatures();
+      if (!features) return;
+
+      if (features.length === 0) {
+        setExportStatus("No selected features available to export.");
+        return;
+      }
+
+      const missionName = getMissionName();
+      const safeName = missionName.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      const kml = featuresToKML(features, missionName);
+
+      downloadTextFile(
+        `${safeName}.kml`,
+        kml,
+        "application/vnd.google-earth.kml+xml"
+      );
+
+      setExportStatus(`Exported ${features.length} features to KML.`);
+    };
     
     // ----- CV formulas (from SORA) -----
     function degToRad(deg) {
@@ -983,7 +1037,206 @@ function getMissionName() {
       setOut("outGrbHa", grbHa.toFixed(2));
       setOut("outCvM", cvMeters.toFixed(1));
       setOut("outGrbM", grbMeters.toFixed(1));
-      
+
+      function downloadTextFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+      }
+
+      function pointToGeoJSON(point) {
+        return {
+          type: "Point",
+          coordinates: [point.longitude ?? point.x, point.latitude ?? point.y]
+        };
+      }
+
+      function polygonToGeoJSON(polygon) {
+        let geom = polygon;
+
+        // Convert WebMercator to geographic if needed
+        if (polygon.spatialReference && polygon.spatialReference.isWebMercator) {
+          geom = webMercatorUtils.webMercatorToGeographic(polygon);
+        }
+
+        return {
+          type: "Polygon",
+          coordinates: geom.rings.map(ring => ring.map(([x, y]) => [x, y]))
+        };
+      }
+
+      function makeFeature(geometry, properties) {
+        if (!geometry) return null;
+
+        let gjGeom = null;
+
+        if (geometry.type === "polygon") {
+          gjGeom = polygonToGeoJSON(geometry);
+        } else if (geometry.type === "point") {
+          const pt = geometry.spatialReference && geometry.spatialReference.isWebMercator
+            ? webMercatorUtils.webMercatorToGeographic(geometry)
+            : geometry;
+
+          gjGeom = pointToGeoJSON(pt);
+        }
+
+        if (!gjGeom) return null;
+
+        return {
+          type: "Feature",
+          geometry: gjGeom,
+          properties: properties || {}
+        };
+      }
+
+      function collectExportFeatures() {
+        const missionName = getMissionName();
+        if (!missionName) {
+          setExportStatus("Enter a mission name before exporting.");
+          return null;
+        }
+
+        const droneKey = droneSelect.value;
+        const droneName = droneKey && drones[droneKey] ? drones[droneKey].name : null;
+
+        const features = [];
+
+        const baseProps = {
+          mission_name: missionName,
+          operation_id: currentOperationId || "",
+          drone_model: droneName || ""
+        };
+
+        // AOI
+        if (document.getElementById("expAOI")?.checked && missionGeom) {
+          features.push(makeFeature(missionGeom, {
+            ...baseProps,
+            feature_type: "AOI",
+            area_ha: haFromGeom(missionGeom)
+          }));
+        }
+
+        // CV
+        if (document.getElementById("expCV")?.checked && lastCvGeom) {
+          features.push(makeFeature(lastCvGeom, {
+            ...baseProps,
+            feature_type: "CV",
+            scv_m: lastCvMeters,
+            area_ha: haFromGeom(lastCvGeom)
+          }));
+        }
+
+        // GRB
+        if (document.getElementById("expGRB")?.checked && lastGrbGeom) {
+          features.push(makeFeature(lastGrbGeom, {
+            ...baseProps,
+            feature_type: "GRB",
+            grb_m: lastGrbMeters,
+            area_ha: haFromGeom(lastGrbGeom)
+          }));
+        }
+
+        // RP / CGA / VLOS
+        rpItems.forEach((item, idx) => {
+          const rpId = `RP${idx + 1}`;
+
+          if (document.getElementById("expRP")?.checked && item.pointG?.geometry) {
+            features.push(makeFeature(item.pointG.geometry, {
+              ...baseProps,
+              feature_type: "RP",
+              rp_id: rpId
+            }));
+          }
+
+          if (document.getElementById("expCGA")?.checked && item.cgaG?.geometry) {
+            features.push(makeFeature(item.cgaG.geometry, {
+              ...baseProps,
+              feature_type: "CGA",
+              rp_id: rpId,
+              cga_m: item.cgaG.attributes?.radius_m || null,
+              area_ha: haFromGeom(item.cgaG.geometry)
+            }));
+          }
+
+          if (document.getElementById("expVLOS")?.checked && item.vlosG?.geometry) {
+            features.push(makeFeature(item.vlosG.geometry, {
+              ...baseProps,
+              feature_type: "VLOS",
+              rp_id: rpId,
+              vlos_m: item.vlosG.attributes?.radius_m || null,
+              area_ha: haFromGeom(item.vlosG.geometry)
+            }));
+          }
+        });
+
+        return features.filter(Boolean);
+      }
+
+      function featureToKMLPlacemark(feature) {
+        const props = feature.properties || {};
+        const name = props.feature_type || "Feature";
+
+        let description = "";
+        Object.keys(props).forEach(key => {
+          const val = props[key];
+          if (val !== null && val !== undefined && val !== "") {
+            description += `${key}: ${val}\n`;
+          }
+        });
+
+        let geometryKML = "";
+
+        if (feature.geometry.type === "Point") {
+          const [x, y] = feature.geometry.coordinates;
+          geometryKML = `
+            <Point>
+              <coordinates>${x},${y},0</coordinates>
+            </Point>`;
+        }
+
+        if (feature.geometry.type === "Polygon") {
+          const coords = feature.geometry.coordinates[0]
+            .map(([x, y]) => `${x},${y},0`)
+            .join(" ");
+
+          geometryKML = `
+            <Polygon>
+              <outerBoundaryIs>
+                <LinearRing>
+                  <coordinates>${coords}</coordinates>
+                </LinearRing>
+              </outerBoundaryIs>
+            </Polygon>`;
+        }
+
+        return `
+          <Placemark>
+            <name>${name}</name>
+            <description><![CDATA[${description}]]></description>
+            ${geometryKML}
+          </Placemark>`;
+      }
+
+      function featuresToKML(features, docName) {
+        const placemarks = features.map(featureToKMLPlacemark).join("\n");
+
+        return `<?xml version="1.0" encoding="UTF-8"?>
+      <kml xmlns="http://www.opengis.net/kml/2.2">
+        <Document>
+          <name>${docName}</name>
+          ${placemarks}
+        </Document>
+      </kml>`;
+      }
+
       // Labels (simple)
       addLabel(`AOI: ${aoiHa.toFixed(2)} ha`, missionGeom, "tl");
       addLabel(`CV: ${cvMeters.toFixed(1)} m\n${cvHa.toFixed(2)} ha`, cvGeom, "tr");
