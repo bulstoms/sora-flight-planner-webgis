@@ -7,7 +7,7 @@ window.SORA_CONFIG = {
   // Your existing web map
   webmapId: "545efda8fc7e44aaae8d5a7ea967e3b3",
 
-  // We will fill these in after you create the new hosted layers
-  soraBuffersLayerUrl: "PASTE_BUFFERS_LAYER_URL_HERE",
-  remotePilotsLayerUrl: "PASTE_REMOTE_PILOTS_LAYER_URL_HERE"
+  // hosted layers info in AGOL
+  buffersLayerUrl: "https://services6.arcgis.com/QViMmJXsTawLQWTG/arcgis/rest/services/SORA_webapp_data/FeatureServer/0",
+  remotePilotsLayerUrl: "https://services6.arcgis.com/QViMmJXsTawLQWTG/arcgis/rest/services/SORA_webapp_data/FeatureServer/1",
 };
