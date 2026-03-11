@@ -731,6 +731,7 @@ function getMissionName() {
 
       const droneKey = droneSelect.value;
       const droneName = droneKey && drones[droneKey] ? drones[droneKey].name : null;
+      const d = droneKey && drones[droneKey] ? drones[droneKey] : null;
 
       const features = [];
 
@@ -1208,13 +1209,6 @@ function getMissionName() {
 
         setReportStatus("Creating report...");
 
-        const screenshot = await view.takeScreenshot({
-          format: "png",
-          quality: 1,
-          width: 1400,
-          height: 900
-        });
-
         const mapScale = Math.round(view.scale);
         const aoiHa = missionGeom ? haFromGeom(missionGeom).toFixed(2) : "—";
         const cvHa = lastCvGeom ? haFromGeom(lastCvGeom).toFixed(2) : "—";
@@ -1230,8 +1224,6 @@ function getMissionName() {
         const grbMethod = chkCustomGRB.checked ? "Custom GRB (MOC Light-UAS.2511-01)" : "Default drone GRB";
 
         const reportTitleInput = document.getElementById("reportTitle")?.value.trim();
-        const missionName = getMissionName();
-
         const reportTitle = reportTitleInput || missionName;
 
         const missionLocation = document.getElementById("reportLocation")?.value || "";
@@ -1402,7 +1394,7 @@ function getMissionName() {
     <tr>
     <th>Map scale at capture</th>
     <td>1:${mapScale}</td>
-    <tr>
+    </tr>
     <th>Minimum parachute altitude (AGL)</th>
     <td>${d ? d.parachuteMinHeight : "—"} m</td>
     </tr>
