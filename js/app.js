@@ -1215,6 +1215,7 @@ function getMissionName() {
           height: 900
         });
 
+        const mapScale = Math.round(view.scale);
         const aoiHa = missionGeom ? haFromGeom(missionGeom).toFixed(2) : "—";
         const cvHa = lastCvGeom ? haFromGeom(lastCvGeom).toFixed(2) : "—";
         const grbHa = lastGrbGeom ? haFromGeom(lastGrbGeom).toFixed(2) : "—";
@@ -1249,12 +1250,18 @@ function getMissionName() {
             const rpId = `RP${idx + 1}`;
             const d = droneKey && drones[droneKey] ? drones[droneKey] : null;
 
+            const pt = webMercatorUtils.webMercatorToGeographic(item.pointG.geometry);
+
+            const lon = pt.longitude.toFixed(6);
+            const lat = pt.latitude.toFixed(6);
+
             rpSummaryRows += `
-              <tr>
-                <td>${rpId}</td>
-                <td>${d ? d.cgaRadius : "—"} m</td>
-                <td>${d ? d.vlosRadius : "—"} m</td>
-              </tr>
+            <tr>
+            <td>${rpId}</td>
+            <td>${lon}, ${lat}</td>
+            <td>${d ? d.cgaRadius : "—"} m</td>
+            <td>${d ? d.vlosRadius : "—"} m</td>
+            </tr>
             `;
 
           });
@@ -1377,6 +1384,13 @@ function getMissionName() {
     <tr><th>Operation ID</th><td>${currentOperationId || "—"}</td></tr>
     <tr><th>Date</th><td>${new Date().toLocaleString()}</td></tr>
     <tr><th>Drone</th><td>${droneName}</td></tr>
+    <tr>
+    <th>Map scale at capture</th>
+    <td>1:${mapScale}</td>
+    <tr>
+    <th>Minimum parachute altitude (AGL)</th>
+    <td>${d ? d.parachuteMinHeight : "—"} m</td>
+    </tr>
     <tr><th>Planned speed</th><td>${plannedSpeed || "—"} m/s</td></tr>
     <tr><th>Planned altitude</th><td>${plannedAltitude || "—"} m</td></tr>
     <tr><th>CV method</th><td>${cvMethod}</td></tr>
@@ -1416,9 +1430,11 @@ function getMissionName() {
 
     <table>
     <tr>
-    <th>Remote pilot</th>
+    <th>Remote pilot location</th>
+    <th>Location (lon / lat)</th>
     <th>CGA radius</th>
     <th>VLOS radius</th>
+    
     </tr>
     ${rpSummaryRows}
     </table>
