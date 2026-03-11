@@ -370,8 +370,46 @@
         <div style="font-size:12px; opacity:0.75; margin-bottom:8px;">
           Create a print-ready mission report in a new tab. Mission name is required.
         </div>
+        <hr style="border:none; border-top:1px solid rgba(0,0,0,0.1); margin:12px 0;" />
 
-        <button id="btnCreateReport" class="measure-btn">Create report</button>
+        <div style="font-weight:600;">Create report</div>
+
+        <div style="font-size:12px; opacity:0.75; margin-bottom:6px;">
+        Prepare a formal preflight mission planning report.
+        </div>
+
+        <label style="font-size:12px;">Title of the report</label>
+        <input id="reportTitle"
+               type="text"
+               placeholder="If empty, the mission name will be used"
+               style="width:100%; margin-bottom:6px;" />
+
+        <label style="font-size:12px;">Mission location</label>
+        <input id="reportLocation"
+               type="text"
+               placeholder="Address, region, country"
+               style="width:100%; margin-bottom:6px;" />
+
+        <label style="font-size:12px;">Mission purpose</label>
+        <textarea id="reportPurpose"
+                  placeholder="Briefly describe the purpose of the survey"
+                  style="width:100%; margin-bottom:10px;"></textarea>
+
+        <div style="font-size:12px; margin-bottom:6px;">
+        Map capture for the report
+        </div>
+
+        <button id="btnCaptureMap1" class="measure-btn">
+        Capture Map 1 (Mission planning map)
+        </button>
+
+        <button id="btnCaptureMap2" class="measure-btn">
+        Capture Map 2 (Location overview map)
+        </button>
+
+        <button id="btnCreateReport" class="measure-btn">
+        Create report
+        </button>
 
         <div id="reportStatus"
              style="
@@ -381,8 +419,7 @@
                border-radius:6px;
                font-size:12px;
                min-height:18px;">
-        </div>
-        
+        </div>      
       </div>
     </details>  
 
