@@ -1179,7 +1179,7 @@ function getMissionName() {
 
     };
     
-    document.getElementById("btnCreateReport").onclick = async () => {
+    document.getElementById("btnCreateReport").onclick = () => {
 
       if (!reportMap1) {
         setReportStatus("Capture Map 1 before creating the report.");
@@ -1199,6 +1199,7 @@ function getMissionName() {
 
       const droneKey = droneSelect.value;
       const droneName = droneKey && drones[droneKey] ? drones[droneKey].name : "Not selected";
+      const d = droneKey && drones[droneKey] ? drones[droneKey] : null;
 
       if (!missionGeom) {
         setReportStatus("Draw or import a mission area before creating a report.");
@@ -1395,6 +1396,7 @@ function getMissionName() {
     <th>Map scale at capture</th>
     <td>1:${mapScale}</td>
     </tr>
+    <tr>
     <th>Minimum parachute altitude (AGL)</th>
     <td>${d ? d.parachuteMinHeight : "—"} m</td>
     </tr>
