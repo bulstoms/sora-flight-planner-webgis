@@ -150,6 +150,8 @@ function getMissionName() {
     let missionGeom = null;
     let lastCvGeom = null;
     let lastGrbGeom = null;
+    let reportMap1 = null;
+    let reportMap2 = null;
     let lastCvMeters = null;
     let lastGrbMeters = null;
     let currentOperationId = null;
@@ -1128,8 +1130,66 @@ function getMissionName() {
       setExportStatus(`Exported ${features.length} features to KML.`);
     };
 
+    document.getElementById("btnCaptureMap1").onclick = async () => {
+
+      try {
+
+        const shot = await view.takeScreenshot({
+          width: 1400,
+          height: 900,
+          format: "png",
+          quality: 1
+        });
+
+        reportMap1 = shot.dataUrl;
+
+        setReportStatus("Map 1 captured for the report.");
+
+      } catch (err) {
+
+        console.error(err);
+        setReportStatus("Failed to capture Map 1.");
+
+      }
+
+    };
+
+    document.getElementById("btnCaptureMap2").onclick = async () => {
+
+      try {
+
+        const shot = await view.takeScreenshot({
+          width: 1400,
+          height: 900,
+          format: "png",
+          quality: 1
+        });
+
+        reportMap2 = shot.dataUrl;
+
+        setReportStatus("Map 2 captured for the report.");
+
+      } catch (err) {
+
+        console.error(err);
+        setReportStatus("Failed to capture Map 2.");
+
+      }
+
+    };
+    
     document.getElementById("btnCreateReport").onclick = async () => {
 
+      if (!reportMap1) {
+        setReportStatus("Capture Map 1 before creating the report.");
+        return;
+      }
+
+      if (!reportMap2) {
+        setReportStatus("Capture Map 2 before creating the report.");
+        return;
+      }
+      
       const missionName = getMissionName();
       if (!missionName) {
         setReportStatus("Enter a mission name before creating a report.");
@@ -1168,6 +1228,16 @@ function getMissionName() {
         const cvMethod = chkCvParachute.checked ? "Parachute contingency method" : "Stop-UA method";
         const grbMethod = chkCustomGRB.checked ? "Custom GRB (MOC Light-UAS.2511-01)" : "Default drone GRB";
 
+        const reportTitleInput = document.getElementById("reportTitle")?.value.trim();
+        const missionName = getMissionName();
+
+        const reportTitle = reportTitleInput || missionName;
+
+        const missionLocation = document.getElementById("reportLocation")?.value || "";
+        const missionPurpose = document.getElementById("reportPurpose")?.value || "";
+
+        const operatorId = "DNK000002048956f (SpectroFly ApS, Denmark)";
+      
         const rpCount = rpItems.length;
 
         let rpSummaryRows = "";
@@ -1334,7 +1404,13 @@ function getMissionName() {
     <div class="legend-item"><span class="swatch vlos"></span> VLOS</div>
     </div>
 
-    <img class="map-image" src="${screenshot.dataUrl}">
+    <img class="map-image" src="${reportMap1}">
+
+    <h3 style="margin-top:24px;">
+    Location of the survey area in a larger geographic context
+    </h3>
+
+    <img class="map-image" src="${reportMap2}">
 
     <h2>Remote pilot summary</h2>
 
