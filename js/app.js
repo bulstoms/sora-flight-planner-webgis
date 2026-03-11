@@ -1291,6 +1291,10 @@ function getMissionName() {
       color: #222;
     }
 
+    .page-break{
+    page-break-before:always;
+    }
+
     .header {
       display:flex;
       align-items:center;
@@ -1330,12 +1334,23 @@ function getMissionName() {
       width:28%;
     }
 
-    .map-image {
-      width:100%;
-      border:1px solid #ddd;
-      border-radius:8px;
+    .map-image{
+    width:100%;
+    border:1px solid #ccc;
     }
 
+    .map-container{
+    position:relative;
+    }
+
+    .north-arrow{
+    position:absolute;
+    right:20px;
+    top:20px;
+    width:40px;
+    opacity:0.9;
+    }
+    
     .legend {
       display:flex;
       gap:16px;
@@ -1408,6 +1423,8 @@ function getMissionName() {
     <tr><th>Remote pilots</th><td>${rpCount}</td></tr>
     </table>
 
+    <div class="page-break"></div>
+    
     <h2>Map overview</h2>
 
     <div class="legend">
@@ -1418,13 +1435,23 @@ function getMissionName() {
     <div class="legend-item"><span class="swatch vlos"></span> VLOS</div>
     </div>
 
+    <div class="map-container">
+    <img class="north-arrow"
+    src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/North_arrow.svg/120px-North_arrow.svg.png">
+
     <img class="map-image" src="${reportMap1}">
+    </div> 
 
     <h3 style="margin-top:24px;">
     Location of the survey area in a larger geographic context
     </h3>
 
+    <div class="map-container">
+    <img class="north-arrow"
+    src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/North_arrow.svg/120px-North_arrow.svg.png">
+
     <img class="map-image" src="${reportMap2}">
+    </div>
 
     <h2>Remote pilot summary</h2>
 
