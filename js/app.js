@@ -1221,8 +1221,25 @@ function getMissionName() {
         const plannedSpeed = clampNonNegative(document.getElementById("inputV0")?.value);
         const plannedAltitude = clampNonNegative(document.getElementById("inputHT")?.value);
 
-        const cvMethod = chkCvParachute.checked ? "Parachute contingency method" : "Stop-UA method";
-        const grbMethod = chkCustomGRB.checked ? "Custom GRB (MOC Light-UAS.2511-01)" : "Default drone GRB";
+        let cvMethodDescription;
+
+        if (chkCvParachute.checked) {
+          cvMethodDescription =
+            "Parachute CV calculation method (Appendix H, page 20, SpectroFly Operations Manual (Specific category operations, version 2.2, 30/07/2025))";
+        } else {
+          cvMethodDescription =
+            "Standard CV calculation method (Table 1, page 48, SpectroFly Operations Manual (Specific category operations, version 2.2, 30/07/2025))";
+        }
+
+        let grbMethodDescription;
+
+        if (chkCustomGRB.checked) {
+          grbMethodDescription =
+            "GRB calculation method based on the EASA MOC Light-UAS.2511-01 (Appendix H, page 16, SpectroFly Operations Manual (Specific category operations, version 2.2, 30/07/2025))";
+        } else {
+          grbMethodDescription =
+            "Default standard GRB value for the drone (Table 2, page 48, SpectroFly Operations Manual (Specific category operations, version 2.2, 30/07/2025))";
+        }
 
         const reportTitleInput = document.getElementById("reportTitle")?.value.trim();
         const reportTitle = reportTitleInput || missionName;
@@ -1263,7 +1280,7 @@ function getMissionName() {
 
           rpSummaryRows = `
             <tr>
-              <td colspan="3">No remote pilots placed</td>
+              <td colspan="3">No remote pilot locations added</td>
             </tr>
           `;
 
@@ -1274,7 +1291,7 @@ function getMissionName() {
     <html>
     <head>
     <meta charset="utf-8">
-    <title>Mission report</title>
+    <title>${reportTitle}</title>
 
     <style>
 
@@ -1378,43 +1395,40 @@ function getMissionName() {
     <body>
 
     <div class="header">
-    <img class="logo" src="./assets/spectrofly-logo.png">
-    <div>
-    <h1>Mission report</h1>
-    <div>${missionName}</div>
-    </div>
+      <img class="logo" src="./assets/spectrofly-logo.png">
+      <div>
+        <h1>Preflight mission planning report based on SpectroFly Operations Manual (Specific category operations, version 2.2, 30/07/2025)</h1>
+        <div style="font-style:italic; font-size:8pt;">${reportTitle}</div>
+      </div>
     </div>
 
     <h2>Mission summary</h2>
 
     <table>
-    <tr><th>Mission name</th><td>${missionName}</td></tr>
-    <tr><th>Operation ID</th><td>${currentOperationId || "—"}</td></tr>
-    <tr><th>Date</th><td>${new Date().toLocaleString()}</td></tr>
-    <tr><th>Drone</th><td>${droneName}</td></tr>
-    <tr>
-    <th>Map scale at capture</th>
-    <td>1:${mapScale}</td>
-    </tr>
-    <tr>
-    <th>Minimum parachute altitude (AGL)</th>
-    <td>${d ? d.parachuteMinHeight : "—"} m</td>
-    </tr>
-    <tr><th>Planned speed</th><td>${plannedSpeed || "—"} m/s</td></tr>
-    <tr><th>Planned altitude</th><td>${plannedAltitude || "—"} m</td></tr>
-    <tr><th>CV method</th><td>${cvMethod}</td></tr>
-    <tr><th>GRB method</th><td>${grbMethod}</td></tr>
+      <tr><th>Mission name</th><td>${missionName}</td></tr>
+      <tr><th>Operation ID</th><td>${currentOperationId || "—"}</td></tr>
+      <tr><th>Mission location</th><td>${missionLocation || "—"}</td></tr>
+      <tr><th>Mission purpose</th><td>${missionPurpose || "—"}</td></tr>
+      <tr><th>Operator ID</th><td>${operatorId}</td></tr>
+      <tr><th>Date</th><td>${new Date().toLocaleString()}</td></tr>
+      <tr><th>Drone</th><td>${droneName}</td></tr>
+      <tr><th>Map scale at capture</th><td>1:${mapScale}</td></tr>
+      <tr><th>Minimum parachute altitude (AGL)</th><td>${d ? d.parachuteMinHeight : "—"} m</td></tr>
+      <tr><th>Planned mission speed</th><td>${plannedSpeed || "—"} m/s</td></tr>
+      <tr><th>Planned mission altitude (AGL)</th><td>${plannedAltitude || "—"} m</td></tr>
+      <tr><th>Applied contingency volume (CV) calculation method</th><td>${cvMethodDescription}</td></tr>
+      <tr><th>Applied Ground Risk Buffer (GRB) calculation method</th><td>${grbMethodDescription}</td></tr>
     </table>
 
     <h2>Geometry summary</h2>
 
     <table>
-    <tr><th>AOI area</th><td>${aoiHa} ha</td></tr>
-    <tr><th>CV area</th><td>${cvHa} ha</td></tr>
-    <tr><th>GRB area</th><td>${grbHa} ha</td></tr>
-    <tr><th>CV distance</th><td>${cvM} m</td></tr>
-    <tr><th>GRB distance</th><td>${grbM} m</td></tr>
-    <tr><th>Remote pilots</th><td>${rpCount}</td></tr>
+      <tr><th>Flight geography (AOI)</th><td>${aoiHa} ha</td></tr>
+      <tr><th>Contingency volume (CV) area</th><td>${cvHa} ha</td></tr>
+      <tr><th>Ground Risk Buffer (GRB) area</th><td>${grbHa} ha</td></tr>
+      <tr><th>Contingency Volume (CV) buffer distance</th><td>${cvM} m</td></tr>
+      <tr><th>Ground Risk Buffer (GRB) distance</th><td>${grbM} m</td></tr>
+      <tr><th>Remote pilot locations</th><td>${rpCount}</td></tr>
     </table>
 
     <div class="page-break"></div>
@@ -1428,6 +1442,8 @@ function getMissionName() {
     <div class="legend-item"><span class="swatch cga"></span> CGA</div>
     <div class="legend-item"><span class="swatch vlos"></span> VLOS</div>
     </div>
+
+    <h3>Preflight mission planning map</h3>
 
     <div class="map-container">
     <img class="north-arrow"
@@ -1447,7 +1463,7 @@ function getMissionName() {
     <img class="map-image" src="${reportMap2}">
     </div>
 
-    <h2>Remote pilot summary</h2>
+    <h2>Remote pilot locations summary</h2>
 
     <table>
     <tr>
